@@ -21,18 +21,9 @@ CREATE TABLE IF NOT EXISTS bureau_programs (
 );
 
 -- 3. CHECKLIST_ITEMS (Atomic Units)
-CREATE TABLE IF NOT EXISTS checklist_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    program_id UUID REFERENCES bureau_programs(id) ON DELETE CASCADE,
-    title TEXT NOT NULL, -- e.g., "Articles of Incorporation"
-    description TEXT, -- Procedural requirement text
-    source_attribution TEXT, -- e.g., "Source: Experian Technical Requirements v2.4"
-    required BOOLEAN DEFAULT true,
-    -- THE ATOMIC STATES
-    status TEXT DEFAULT 'missing', -- missing, pending_review, needs_action, approved
-    file_url TEXT,
     rejection_reason TEXT, -- Populates "Fix It Now"
     last_updated_by UUID, 
+    created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 

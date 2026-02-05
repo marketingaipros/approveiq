@@ -32,7 +32,11 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
         .from('checklist_items')
         .select('*')
         .eq('program_id', id)
-        .order('created_at', { ascending: true }) // Procedural order
+        .order('updated_at', { ascending: true }) // Fixed column name
+
+    if (itemsError) {
+        console.error("Fetch items error:", itemsError)
+    }
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto" suppressHydrationWarning>
@@ -64,7 +68,15 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
 
             {/* Checklist */}
             <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Bureau Requirements</h2>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">Bureau Requirements</h2>
+                    {itemsError && (
+                        <div className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Failed to sync latest requirements.
+                        </div>
+                    )}
+                </div>
                 <div className="space-y-4">
                     {!items || items.length === 0 ? (
                         <div className="text-center py-12 space-y-4 border-2 border-dashed rounded-lg">
