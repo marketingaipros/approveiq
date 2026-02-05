@@ -21,8 +21,10 @@ export function SeedButton({ programId }: SeedButtonProps) {
             try {
                 console.log("Starting seed process for:", programId)
                 await seedProgramRequirements(programId)
-                console.log("Seed complete, refreshing...")
+                console.log("Seed complete, forcing hard reload...")
                 router.refresh()
+                // Forced hard reload to clear any React hydration issues caused by extensions
+                window.location.reload()
             } catch (err: any) {
                 console.error("Seeding error:", err)
                 setError(err.message || "Failed to generate requirements. Check your connection.")

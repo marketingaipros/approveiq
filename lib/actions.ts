@@ -39,6 +39,20 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
 export async function seedProgramRequirements(programId: string) {
     const supabase = await createClient()
 
+    console.log("Seeding started for ID:", programId)
+
+    // Verify program exists
+    const { data: program, error: checkError } = await (supabase as any)
+        .from('bureau_programs')
+        .select('id')
+        .eq('id', programId)
+        .single()
+
+    if (checkError || !program) {
+        console.error("Program check failed:", checkError)
+        throw new Error("Program not found or access denied")
+    }
+
     const items = [
         {
             program_id: programId,
