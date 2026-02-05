@@ -9,6 +9,7 @@ import { RejectionCard } from "./rejection-card"
 import { DocumentUpload } from "./document-upload"
 import { updateChecklistItemStatus } from "@/lib/actions"
 import { createClient } from "@/lib/supabase/client"
+import { KnowledgeDrawer } from "./knowledge-drawer"
 
 export type ChecklistItemStatus = 'missing' | 'pending_review' | 'needs_action' | 'approved'
 
@@ -58,6 +59,9 @@ export function ChecklistItem({ id, title, description, status: initialStatus, r
                         <h3 className="font-semibold text-lg">{title}</h3>
                         {isRequired && <span className="text-xs text-red-500 font-medium">*Required</span>}
                         {getStatusBadge()}
+                        <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+                            <KnowledgeDrawer topic={title} />
+                        </div>
                     </div>
                 </div>
                 <Button variant="ghost" size="sm">

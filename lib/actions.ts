@@ -15,15 +15,20 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
         updateData.rejection_reason = null
     }
 
-    const { error } = await (supabase as any)
+    const { data: itemData, error: itemError } = await (supabase as any)
         .from('checklist_items')
         .update(updateData)
         .eq('id', itemId)
+        .select('program_id')
+        .single()
 
-    if (error) {
-        console.error("Failed to update item:", error)
+    if (itemError || !itemData) {
+        console.error("Failed to update item:", itemError)
         throw new Error("Failed to update status")
     }
+
+    // 4. Recalculate Program Progress
+    await recalculateProgramProgress(itemData.program_id)
 
     // Trigger Audit Log (Mock for now, would be a DB trigger ideally)
     await (supabase as any).from('audit_logs').insert({
@@ -98,6 +103,57 @@ export async function seedProgramRequirements(programId: string) {
     }
 
     console.log("Successfully seeded items for program:", programId)
+
+    revalidatePath(`/programs/${programId}`)
+    revalidatePath('/dashboard')
+}
+
+/**
+ * Recalculates the progress_percent for a program and the overall bureau_readiness_score for the organization.
+ */
+export async function recalculateProgramProgress(programId: string) {
+    const supabase = await createClient()
+
+    // 1. Get all items for this program
+    const { data: items } = await (supabase as any)
+        .from('checklist_items')
+        .select('status')
+        .eq('program_id', programId)
+
+    if (!items || items.length === 0) return
+
+    // 2. Calculate percentage
+    const approvedCount = items.filter((i: any) => i.status === 'approved').length
+    const progressPercent = Math.round((approvedCount / items.length) * 100)
+
+    // 3. Update Program
+    const { data: program, error: progError } = await (supabase as any)
+        .from('bureau_programs')
+        .update({ progress_percent: progressPercent })
+        .eq('id', programId)
+        .select('org_id')
+        .single()
+
+    if (progError || !program) {
+        console.error("Failed to update program progress:", progError)
+        return
+    }
+
+    // 4. Update Org Readiness Score (Average of all programs)
+    const { data: programs } = await (supabase as any)
+        .from('bureau_programs')
+        .select('progress_percent')
+        .eq('org_id', program.org_id)
+
+    if (programs && programs.length > 0) {
+        const totalProgress = programs.reduce((acc: number, p: any) => acc + (p.progress_percent || 0), 0)
+        const avgReadiness = Math.round(totalProgress / programs.length)
+
+        await (supabase as any)
+            .from('organizations')
+            .update({ bureau_readiness_score: avgReadiness })
+            .eq('id', program.org_id)
+    }
 
     revalidatePath(`/programs/${programId}`)
     revalidatePath('/dashboard')
