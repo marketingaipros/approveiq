@@ -250,3 +250,46 @@ export async function updateSecuritySettings(mfaEnforced: boolean) {
     revalidatePath('/dashboard')
     console.log("Updated security settings for org:", orgId)
 }
+
+export async function submitProgramForReview(programId: string) {
+    const supabase = await createClient()
+
+    // 1. Double check all required items are Approved or Pending
+    const { data: items } = await (supabase as any)
+        .from('checklist_items')
+        .select('status, required')
+        .eq('program_id', programId)
+
+    const incomplete = items?.filter((i: any) => i.required && (i.status === 'missing' || i.status === 'needs_action'))
+
+    if (incomplete && incomplete.length > 0) {
+        throw new Error(`Cannot submit. ${incomplete.length} mandatory items are still missing or need action.`)
+    }
+
+    // 2. Update Program Status
+    const { error } = await (supabase as any)
+        .from('bureau_programs')
+        .update({
+            status: 'locked_for_review',
+            attested_at: new Date().toISOString()
+        })
+        .eq('id', programId)
+
+    if (error) {
+        console.error("Failed to submit program:", error)
+        throw new Error("Failed to submit program")
+    }
+
+    // 3. Log the audit event
+    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
+    await (supabase as any).from('audit_logs').insert({
+        org_id: orgs?.[0]?.id,
+        action: 'program_submitted_for_review',
+        metadata: { program_id: programId },
+        created_at: new Date().toISOString()
+    })
+
+    console.log("Program submitted for review:", programId)
+    revalidatePath(`/programs/${programId}`)
+    revalidatePath('/programs')
+}

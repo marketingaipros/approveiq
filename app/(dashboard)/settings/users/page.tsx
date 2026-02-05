@@ -9,12 +9,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 export default async function UsersPage() {
     const supabase = await createClient()
 
-    // In a real app, we'd fetch actual users. 
-    // Mocking for prototype UI demonstration.
-    const mockUsers = [
-        { id: 1, name: "David White", email: "david@acme.com", role: "Owner", status: "Active" },
-        { id: 2, name: "Sarah Compliance", email: "sarah@acme.com", role: "Admin", status: "Active" },
-        { id: 3, name: "Bob Smith", email: "bob@acme.com", role: "Editor", status: "Pending" },
+    // 1. Fetch real profiles
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    // 2. Fallback to mock if table is empty (prototype experience)
+    const mockUsers = profiles && profiles.length > 0 ? profiles : [
+        { id: '1', full_name: "David White", email: "david@acme.com", role: "Owner", status: "Active" },
+        { id: '2', full_name: "Sarah Compliance", email: "sarah@acme.com", role: "Admin", status: "Active" },
+        { id: '3', full_name: "Bob Smith", email: "bob@acme.com", role: "Editor", status: "Pending" },
     ]
 
     return (
@@ -46,15 +51,15 @@ export default async function UsersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {mockUsers.map((user) => (
+                            {mockUsers.map((user: any) => (
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                                <AvatarFallback>{(user.full_name || user.name || "U").charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-sm">{user.name}</span>
+                                                <span className="font-medium text-sm">{user.full_name || user.name}</span>
                                                 <span className="text-xs text-muted-foreground">{user.email}</span>
                                             </div>
                                         </div>
