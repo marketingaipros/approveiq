@@ -73,8 +73,13 @@ export async function seedProgramRequirements(programId: string) {
         .from('checklist_items')
         .insert(items)
 
+    if (error) {
+        console.error("Failed to seed items:", error)
+        throw new Error(`Failed to seed items: ${error.message}`)
+    }
+
     console.log("Successfully seeded items for program:", programId)
 
-    revalidatePath('/programs/[id]', 'page')
-    redirect(`/programs/${programId}`)
+    revalidatePath(`/programs/${programId}`)
+    revalidatePath('/dashboard')
 }
