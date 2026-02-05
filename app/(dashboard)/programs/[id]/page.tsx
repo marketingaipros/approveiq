@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/server"
 import { SeedButton } from "@/components/checklist/seed-button"
 import { notFound } from "next/navigation"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ProgramDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const supabase = await createClient()
@@ -33,6 +36,8 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
         .select('*')
         .eq('program_id', id)
         .order('created_at', { ascending: true }) // Procedural order
+
+    console.log(`Fetched ${items?.length || 0} items for program ${id}`)
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">

@@ -48,9 +48,14 @@ export async function seedProgramRequirements(programId: string) {
         .eq('id', programId)
         .single()
 
-    if (checkError || !program) {
-        console.error("Program check failed:", checkError)
-        throw new Error("Program not found or access denied")
+    const { data: existingItems } = await (supabase as any)
+        .from('checklist_items')
+        .select('id')
+        .eq('program_id', programId)
+
+    if (existingItems && existingItems.length > 0) {
+        console.log("Checklist already populated for:", programId)
+        return
     }
 
     const items = [
