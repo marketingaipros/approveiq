@@ -8,14 +8,15 @@ import { ChecklistItem, ChecklistItemStatus } from "@/components/checklist/check
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 
-export default async function ProgramDetailsPage({ params }: { params: { id: string } }) {
+export default async function ProgramDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     const supabase = await createClient()
 
     // 1. Fetch Program
     const { data: program, error: programError } = await supabase
         .from('bureau_programs')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
     const safeProgram = program as any
@@ -29,7 +30,7 @@ export default async function ProgramDetailsPage({ params }: { params: { id: str
     const { data: items, error: itemsError } = await supabase
         .from('checklist_items')
         .select('*')
-        .eq('program_id', params.id)
+        .eq('program_id', id)
         .order('created_at', { ascending: true }) // Procedural order
 
     return (
