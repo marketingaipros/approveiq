@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { BUREAU_TEMPLATES } from "./templates"
 
 export async function updateChecklistItemStatus(itemId: string, status: string, fileUrl?: string) {
     const supabase = await createClient()
@@ -157,4 +158,63 @@ export async function recalculateProgramProgress(programId: string) {
 
     revalidatePath(`/programs/${programId}`)
     revalidatePath('/dashboard')
+}
+
+export async function createProgramFromTemplate(templateId: string) {
+    const supabase = await createClient()
+
+    // 1. Find template
+    const template = BUREAU_TEMPLATES.find(t => t.id === templateId)
+    if (!template) throw new Error("Template not found")
+
+    // 2. Get Org Context
+    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
+    if (!orgs || orgs.length === 0) throw new Error("No organization found")
+    const orgId = orgs[0].id
+
+    // 3. Create Program
+    const { data: program, error: progError } = await (supabase as any)
+        .from('bureau_programs')
+        .insert({
+            org_id: orgId,
+            title: template.name,
+            bureau: template.bureau,
+            status: 'active',
+            progress_percent: 0
+        })
+        .select()
+        .single()
+
+    if (progError || !program) {
+        console.error("Failed to create program:", progError)
+        throw new Error("Failed to create program")
+    }
+
+    // 4. Create Checklist Items
+    const items = template.items.map(item => ({
+        program_id: program.id,
+        title: item.title,
+        description: item.description,
+        source_attribution: item.source_attribution,
+        required: item.required,
+        status: 'missing'
+    }))
+
+    const { error: itemsError } = await (supabase as any)
+        .from('checklist_items')
+        .insert(items)
+
+    if (itemsError) {
+        console.error("Failed to create items:", itemsError)
+        // Cleanup program? Or just let user retry. Insertion of items is more critical.
+        throw new Error("Failed to populate checklist")
+    }
+
+    console.log("Created program from template:", program.id)
+
+    revalidatePath('/programs')
+    revalidatePath('/dashboard')
+
+    // Redirect to the new program page
+    redirect(`/programs/${program.id}`)
 }
