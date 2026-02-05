@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Lock, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { ChecklistItem, ChecklistItemStatus } from "@/components/checklist/checklist-item"
 import { createClient } from "@/lib/supabase/server"
+import { seedProgramRequirements } from "@/lib/actions"
 import { notFound } from "next/navigation"
 
 export default async function ProgramDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -66,7 +67,15 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
                 <h2 className="text-lg font-semibold">Bureau Requirements</h2>
                 <div>
                     {!items || items.length === 0 ? (
-                        <p className="text-muted-foreground italic">No requirements configured for this program.</p>
+                        <div className="text-center py-12 space-y-4">
+                            <p className="text-muted-foreground italic">No requirements configured for this program.</p>
+                            <form action={seedProgramRequirements.bind(null, safeProgram.id)}>
+                                <Button variant="outline" size="sm">
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Generate Default Requirements
+                                </Button>
+                            </form>
+                        </div>
                     ) : (
                         items.map((item: any) => (
                             <div key={item.id} className="relative group">

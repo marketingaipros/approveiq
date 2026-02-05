@@ -33,3 +33,48 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
 
     revalidatePath('/programs/[id]', 'page')
 }
+
+export async function seedProgramRequirements(programId: string) {
+    const supabase = await createClient()
+
+    const items = [
+        {
+            program_id: programId,
+            title: 'Metro 2® File Validation',
+            description: 'Upload a sample file passing the Metro 2® standard format checks.',
+            source_attribution: 'Source: CDIA Metro 2® Format 2024',
+            status: 'needs_action',
+            required: true,
+            rejection_reason: 'File failed Record 426 validation check.'
+        },
+        {
+            program_id: programId,
+            title: 'Data Subscriber Agreement (DSA)',
+            description: 'Upload the signed DSA header page.',
+            source_attribution: 'Source: Experian Legal',
+            status: 'missing',
+            required: true,
+            rejection_reason: null
+        },
+        {
+            program_id: programId,
+            title: 'Security Audit Attestation',
+            description: 'Upload SOC 2 Type 2 or equivalent attestation.',
+            source_attribution: 'Source: Experian Security Standards',
+            status: 'pending_review',
+            required: true,
+            rejection_reason: null
+        }
+    ]
+
+    const { error } = await (supabase as any)
+        .from('checklist_items')
+        .insert(items)
+
+    if (error) {
+        console.error("Failed to seed items:", error)
+        throw new Error("Failed to seed items")
+    }
+
+    revalidatePath('/programs/[id]', 'page')
+}
