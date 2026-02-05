@@ -69,7 +69,7 @@ export function SecuritySettings({ initialMfaEnforced, orgName }: SecuritySettin
 
                     <div className="pt-4 border-t border-border">
                         <h4 className="text-sm font-medium mb-3">Bureau Compliance Status</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className={`p-4 rounded-lg border flex items-center gap-3 ${mfaEnforced ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
                                 {mfaEnforced ? (
                                     <ShieldCheck className="h-5 w-5 text-green-500" />
@@ -77,9 +77,35 @@ export function SecuritySettings({ initialMfaEnforced, orgName }: SecuritySettin
                                     <ShieldAlert className="h-5 w-5 text-red-500" />
                                 )}
                                 <div>
-                                    <p className="text-sm font-medium">Experian Compliance</p>
+                                    <p className="text-sm font-medium">Experian</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {mfaEnforced ? "Passing Security Standards" : "MFA Required for Data Access"}
+                                        {mfaEnforced ? "Passing" : "MFA Required"}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={`p-4 rounded-lg border flex items-center gap-3 ${mfaEnforced ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                {mfaEnforced ? (
+                                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                                ) : (
+                                    <ShieldAlert className="h-5 w-5 text-red-500" />
+                                )}
+                                <div>
+                                    <p className="text-sm font-medium">Equifax</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {mfaEnforced ? "M2 Standard" : "MFA Required"}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={`p-4 rounded-lg border flex items-center gap-3 ${mfaEnforced ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                {mfaEnforced ? (
+                                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                                ) : (
+                                    <ShieldAlert className="h-5 w-5 text-red-500" />
+                                )}
+                                <div>
+                                    <p className="text-sm font-medium">D&B</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {mfaEnforced ? "Commercial" : "MFA Required"}
                                     </p>
                                 </div>
                             </div>
@@ -107,7 +133,9 @@ export function SecuritySettings({ initialMfaEnforced, orgName }: SecuritySettin
                                 <p className="text-xs text-muted-foreground">Using Google Authenticator or Authy</p>
                             </div>
                         </div>
-                        <Button variant="outline" size="sm" disabled>Manage</Button>
+                        <Button variant="outline" size="sm" onClick={() => window.open('https://supabase.com/docs/guides/auth/auth-mfa', '_blank')}>
+                            Manage
+                        </Button>
                     </div>
                 </CardContent>
                 <CardFooter className="bg-muted/30 py-3">

@@ -8,7 +8,8 @@ import {
     ShoppingCart,
     Users,
     FileCheck,
-    ShieldCheck
+    ShieldCheck,
+    BookOpen
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -58,11 +59,25 @@ export function Sidebar() {
                             Templates
                         </Link>
                         <Link
-                            href="#"
+                            href="/analytics"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                         >
                             <LineChart className="h-4 w-4" />
                             Analytics
+                        </Link>
+                        <Link
+                            href="/knowledge"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <BookOpen className="h-4 w-4" />
+                            Knowledge Base
+                        </Link>
+                        <Link
+                            href="/settings/users"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Users className="h-4 w-4" />
+                            Users
                         </Link>
                         <Link
                             href="/settings/audit"
@@ -77,13 +92,6 @@ export function Sidebar() {
                         >
                             <ShieldCheck className="h-4 w-4" />
                             Security
-                        </Link>
-                        <Link
-                            href="#"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Settings className="h-4 w-4" />
-                            Settings
                         </Link>
                     </nav>
                 </div>

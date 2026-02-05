@@ -41,7 +41,7 @@ export function KnowledgeDrawer({ topic }: KnowledgeDrawerProps) {
 
             if (error) throw error
             if (data) {
-                setContent(data.content)
+                setContent((data as any).content)
             }
         } catch (error) {
             console.error("Error fetching KB content:", error)
