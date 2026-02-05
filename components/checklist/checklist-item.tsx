@@ -24,6 +24,7 @@ interface ChecklistItemProps {
 export function ChecklistItem({ id, title, description, status: initialStatus, rejectionReason, isRequired }: ChecklistItemProps) {
     const [status, setStatus] = useState<ChecklistItemStatus>(initialStatus)
     const [isExpanded, setIsExpanded] = useState(initialStatus === 'needs_action' || initialStatus === 'missing')
+    const [isUploading, setIsUploading] = useState(false)
 
     const getStatusIcon = () => {
         switch (status) {
@@ -71,30 +72,36 @@ export function ChecklistItem({ id, title, description, status: initialStatus, r
                     {/* State-specific Content */}
                     {status === 'missing' && (
                         <DocumentUpload
+                            isUploading={isUploading}
                             onUploadComplete={async (file) => {
-                                console.log("Uploading file:", file.name)
-                                const supabase = createClient()
+                                setIsUploading(true)
+                                try {
+                                    console.log("Uploading file:", file.name)
+                                    const supabase = createClient()
 
-                                // 1. Upload to Supabase Storage
-                                const fileName = `${id}/${Date.now()}-${file.name}`
-                                const { data, error } = await supabase.storage
-                                    .from('documents')
-                                    .upload(fileName, file)
+                                    // 1. Upload to Supabase Storage
+                                    const fileName = `${id}/${Date.now()}-${file.name}`
+                                    const { data, error } = await supabase.storage
+                                        .from('documents')
+                                        .upload(fileName, file)
 
-                                if (error) {
-                                    console.error("Upload failed:", error)
-                                    alert("Upload failed. Please try again.")
-                                    return
+                                    if (error) {
+                                        console.error("Upload failed:", error)
+                                        alert("Upload failed. Please try again.")
+                                        return
+                                    }
+
+                                    // 2. Get Public URL
+                                    const { data: { publicUrl } } = supabase.storage
+                                        .from('documents')
+                                        .getPublicUrl(fileName)
+
+                                    // 3. Update DB Status via Server Action
+                                    await updateChecklistItemStatus(id, 'pending_review', publicUrl)
+                                    setStatus('pending_review')
+                                } finally {
+                                    setIsUploading(false)
                                 }
-
-                                // 2. Get Public URL
-                                const { data: { publicUrl } } = supabase.storage
-                                    .from('documents')
-                                    .getPublicUrl(fileName)
-
-                                // 3. Update DB Status via Server Action
-                                await updateChecklistItemStatus(id, 'pending_review', publicUrl)
-                                setStatus('pending_review')
                             }}
                         />
                     )}
