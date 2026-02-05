@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { RejectionCard } from "./rejection-card"
 import { DocumentUpload } from "./document-upload"
+import { updateChecklistItemStatus } from "@/lib/actions"
+import { createClient } from "@/lib/supabase/client"
 
 export type ChecklistItemStatus = 'missing' | 'pending_review' | 'needs_action' | 'approved'
 
@@ -69,9 +71,29 @@ export function ChecklistItem({ id, title, description, status: initialStatus, r
                     {/* State-specific Content */}
                     {status === 'missing' && (
                         <DocumentUpload
-                            onUploadComplete={(file) => {
-                                console.log("Uploaded file:", file.name)
-                                // In real app, upload to Supabase, then set status
+                            onUploadComplete={async (file) => {
+                                console.log("Uploading file:", file.name)
+                                const supabase = createClient()
+
+                                // 1. Upload to Supabase Storage
+                                const fileName = `${id}/${Date.now()}-${file.name}`
+                                const { data, error } = await supabase.storage
+                                    .from('documents')
+                                    .upload(fileName, file)
+
+                                if (error) {
+                                    console.error("Upload failed:", error)
+                                    alert("Upload failed. Please try again.")
+                                    return
+                                }
+
+                                // 2. Get Public URL
+                                const { data: { publicUrl } } = supabase.storage
+                                    .from('documents')
+                                    .getPublicUrl(fileName)
+
+                                // 3. Update DB Status via Server Action
+                                await updateChecklistItemStatus(id, 'pending_review', publicUrl)
                                 setStatus('pending_review')
                             }}
                         />

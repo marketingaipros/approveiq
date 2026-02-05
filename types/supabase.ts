@@ -16,6 +16,7 @@ export interface Database {
           stripe_customer_id: string | null
           subscription_tier: string
           subscription_status: string
+          bureau_readiness_score: number
           created_at: string
         }
         Insert: {
@@ -24,6 +25,7 @@ export interface Database {
           stripe_customer_id?: string | null
           subscription_tier?: string
           subscription_status?: string
+          bureau_readiness_score?: number
           created_at?: string
         }
         Update: {
@@ -32,14 +34,16 @@ export interface Database {
           stripe_customer_id?: string | null
           subscription_tier?: string
           subscription_status?: string
+          bureau_readiness_score?: number
           created_at?: string
         }
       }
-      projects: {
+      bureau_programs: {
         Row: {
           id: string
           org_id: string
           title: string
+          bureau: string
           status: string
           progress_percent: number
           created_at: string
@@ -48,6 +52,7 @@ export interface Database {
           id?: string
           org_id: string
           title: string
+          bureau: string
           status?: string
           progress_percent?: number
           created_at?: string
@@ -56,6 +61,7 @@ export interface Database {
           id?: string
           org_id?: string
           title?: string
+          bureau?: string
           status?: string
           progress_percent?: number
           created_at?: string
@@ -64,9 +70,10 @@ export interface Database {
       checklist_items: {
         Row: {
           id: string
-          project_id: string
+          program_id: string
           title: string
           description: string | null
+          source_attribution: string | null
           required: boolean
           status: string
           file_url: string | null
@@ -76,9 +83,10 @@ export interface Database {
         }
         Insert: {
           id?: string
-          project_id: string
+          program_id: string
           title: string
           description?: string | null
+          source_attribution?: string | null
           required?: boolean
           status?: string
           file_url?: string | null
@@ -88,15 +96,39 @@ export interface Database {
         }
         Update: {
           id?: string
-          project_id?: string
+          program_id?: string
           title?: string
           description?: string | null
+          source_attribution?: string | null
           required?: boolean
           status?: string
           file_url?: string | null
           rejection_reason?: string | null
           last_updated_by?: string | null
           updated_at?: string
+        }
+      }
+      knowledge_base: {
+        Row: {
+          id: string
+          topic: string
+          content: string
+          bureau: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          topic: string
+          content: string
+          bureau?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          topic?: string
+          content?: string
+          bureau?: string | null
+          created_at?: string
         }
       }
       audit_logs: {
