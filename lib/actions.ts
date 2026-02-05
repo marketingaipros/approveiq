@@ -218,3 +218,35 @@ export async function createProgramFromTemplate(templateId: string) {
     // Redirect to the new program page
     redirect(`/programs/${program.id}`)
 }
+
+export async function updateSecuritySettings(mfaEnforced: boolean) {
+    const supabase = await createClient()
+
+    // 1. Get Org Context
+    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
+    if (!orgs || orgs.length === 0) throw new Error("No organization found")
+    const orgId = orgs[0].id
+
+    // 2. Update Org
+    const { error } = await (supabase as any)
+        .from('organizations')
+        .update({ mfa_enforced: mfaEnforced })
+        .eq('id', orgId)
+
+    if (error) {
+        console.error("Failed to update security settings:", error)
+        throw new Error("Failed to update security settings")
+    }
+
+    // 3. Log the change
+    await (supabase as any).from('audit_logs').insert({
+        org_id: orgId,
+        action: 'security_policy_updated',
+        metadata: { mfa_enforced: mfaEnforced },
+        created_at: new Date().toISOString()
+    })
+
+    revalidatePath('/settings/security')
+    revalidatePath('/dashboard')
+    console.log("Updated security settings for org:", orgId)
+}
