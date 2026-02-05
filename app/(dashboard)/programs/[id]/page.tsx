@@ -70,7 +70,7 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
                         <div className="text-center py-12 space-y-4">
                             <p className="text-muted-foreground italic">No requirements configured for this program.</p>
                             <form action={seedProgramRequirements.bind(null, safeProgram.id)}>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" type="submit">
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Generate Default Requirements
                                 </Button>

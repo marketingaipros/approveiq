@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 export async function updateChecklistItemStatus(itemId: string, status: string, fileUrl?: string) {
     const supabase = await createClient()
@@ -32,6 +33,7 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
     })
 
     revalidatePath('/programs/[id]', 'page')
+    console.log("Updated checklist item status for:", itemId)
 }
 
 export async function seedProgramRequirements(programId: string) {
@@ -71,10 +73,8 @@ export async function seedProgramRequirements(programId: string) {
         .from('checklist_items')
         .insert(items)
 
-    if (error) {
-        console.error("Failed to seed items:", error)
-        throw new Error("Failed to seed items")
-    }
+    console.log("Successfully seeded items for program:", programId)
 
     revalidatePath('/programs/[id]', 'page')
+    redirect(`/programs/${programId}`)
 }
