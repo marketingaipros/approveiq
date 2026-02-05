@@ -1,5 +1,3 @@
-
-
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, CheckCircle2, Lock, AlertCircle } from "lucide-react"
@@ -25,7 +23,6 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
 
     const safeProgram = program as any
 
-
     if (programError || !safeProgram) {
         notFound()
     }
@@ -37,10 +34,8 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
         .eq('program_id', id)
         .order('created_at', { ascending: true }) // Procedural order
 
-    console.log(`Fetched ${items?.length || 0} items for program ${id}`)
-
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="space-y-6 max-w-4xl mx-auto" suppressHydrationWarning>
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
                     <Link href="/programs">
@@ -70,9 +65,9 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
             {/* Checklist */}
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Bureau Requirements</h2>
-                <div>
+                <div className="space-y-4">
                     {!items || items.length === 0 ? (
-                        <div className="text-center py-12 space-y-4">
+                        <div className="text-center py-12 space-y-4 border-2 border-dashed rounded-lg">
                             <p className="text-muted-foreground italic">No requirements configured for this program.</p>
                             <SeedButton programId={safeProgram.id} />
                         </div>
