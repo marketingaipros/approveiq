@@ -44,13 +44,13 @@ export default async function ProgramsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Bureau Programs</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Active Credit Bureaus</h1>
                     <p className="text-muted-foreground">Manage your application status across credit bureaus.</p>
                 </div>
                 <Button asChild>
                     <Link href="/templates">
                         <Plus className="mr-2 h-4 w-4" />
-                        New Program
+                        New Credit Bureau
                     </Link>
                 </Button>
             </div>
@@ -73,8 +73,8 @@ export default async function ProgramsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Program Title</TableHead>
-                            <TableHead>Bureau</TableHead>
+                            <TableHead>Bureau Name</TableHead>
+                            <TableHead>Provider</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Readiness</TableHead>
                             <TableHead className="text-right">Action</TableHead>
@@ -84,7 +84,7 @@ export default async function ProgramsPage() {
                         {programs.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                    No active programs found. Create one from a template.
+                                    No active credit bureaus found. Create one from a template.
                                 </TableCell>
                             </TableRow>
                         ) : (

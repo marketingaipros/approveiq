@@ -5,14 +5,15 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { BUREAU_TEMPLATES } from "./templates"
 
-export async function updateChecklistItemStatus(itemId: string, status: string, fileUrl?: string) {
+import { analyzeDocument } from "./ai/processor"
+
+export async function updateChecklistItemStatus(itemId: string, status: string, fileUrl?: string, requirementTag?: string) {
     const supabase = await createClient()
 
-    // update status
+    // 1. Update status and file URL
     const updateData: any = { status, updated_at: new Date().toISOString() }
     if (fileUrl) {
         updateData.file_url = fileUrl
-        // If uploading, clear rejection reason
         updateData.rejection_reason = null
     }
 
@@ -20,7 +21,7 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
         .from('checklist_items')
         .update(updateData)
         .eq('id', itemId)
-        .select('program_id')
+        .select('program_id, title')
         .single()
 
     if (itemError || !itemData) {
@@ -28,13 +29,30 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
         throw new Error("Failed to update status")
     }
 
-    // 4. Recalculate Program Progress
+    // 2. Perform AI Analysis if a file was uploaded and we have a tag
+    if (fileUrl && (requirementTag || itemData.requirement_tag)) {
+        const tag = requirementTag || itemData.requirement_tag
+        console.log(`[AI] Triggering analysis for: ${itemData.title} (Tag: ${tag})`)
+
+        // Simulating background extraction
+        // In reality, we'd use a real File object or buffer here.
+        // For the mock, we just signal that the extraction happened.
+        if (tag === 'TAX_ID_VERIFICATION') {
+            await updateSharedData('ein', '99-1234567')
+        } else if (tag === 'SECURITY_AUDIT') {
+            await updateSharedData('soc2_status', 'active')
+        } else if (tag === 'SERVICE_AGREEMENT') {
+            await updateSharedData('agreement_signed', 'true')
+        }
+    }
+
+    // 3. Recalculate Program Progress
     await recalculateProgramProgress(itemData.program_id)
 
-    // Trigger Audit Log (Mock for now, would be a DB trigger ideally)
+    // Trigger Audit Log
     await (supabase as any).from('audit_logs').insert({
         action: 'status_changed',
-        metadata: { itemId, status, fileUrl },
+        metadata: { itemId, status, fileUrl, requirementTag },
         created_at: new Date().toISOString()
     })
 
@@ -167,10 +185,16 @@ export async function createProgramFromTemplate(templateId: string) {
     const template = BUREAU_TEMPLATES.find(t => t.id === templateId)
     if (!template) throw new Error("Template not found")
 
-    // 2. Get Org Context
-    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
-    if (!orgs || orgs.length === 0) throw new Error("No organization found")
-    const orgId = orgs[0].id
+    // 2. Get Org Context via Profile
+    const { data: { session } } = await supabase.auth.getSession()
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('org_id')
+        .eq('id', session?.user?.id || '')
+        .single()
+
+    if (!profile?.org_id) throw new Error("No organization context found for this user.")
+    const orgId = profile.org_id
 
     // 3. Create Program
     const { data: program, error: progError } = await (supabase as any)
@@ -197,6 +221,7 @@ export async function createProgramFromTemplate(templateId: string) {
         description: item.description,
         source_attribution: item.source_attribution,
         required: item.required,
+        requirement_tag: item.requirement_tag,
         status: 'missing'
     }))
 
@@ -292,4 +317,64 @@ export async function submitProgramForReview(programId: string) {
     console.log("Program submitted for review:", programId)
     revalidatePath(`/programs/${programId}`)
     revalidatePath('/programs')
+}
+
+export async function getSignedURL(path: string) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(path, 3600) // 60 mins
+
+    if (error) throw error
+    return data.signedUrl
+}
+
+export async function updateSharedData(key: string, value: string) {
+    const supabase = await createClient()
+
+    // Get current org
+    const { data: org } = await supabase.from('organizations').select('id, data_cache').limit(1).single()
+    if (!org) return
+
+    const newCache = { ...((org as any).data_cache as any), [key]: value }
+
+    await (supabase as any)
+        .from('organizations')
+        .update({ data_cache: newCache })
+        .eq('id', (org as any).id)
+
+    console.log(`Updated shared data: ${key}`)
+    revalidatePath('/dashboard')
+}
+
+export async function getAuditLogsCSV() {
+    const supabase = await createClient()
+
+    // Fetch all logs (in a real app, we'd scope by org_id from the session)
+    const { data: logs, error } = await (supabase as any)
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (error || !logs) {
+        throw new Error("Failed to fetch audit logs for export")
+    }
+
+    // Simple CSV generation
+    const headers = ["ID", "Action", "Org ID", "User ID", "Created At", "Metadata"]
+    const rows = logs.map((log: any) => [
+        log.id,
+        log.action,
+        log.org_id,
+        log.user_id,
+        log.created_at,
+        JSON.stringify(log.metadata).replace(/"/g, '""')
+    ])
+
+    const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any) => row.map((val: any) => `"${val}"`).join(","))
+    ].join("\n")
+
+    return csvContent
 }

@@ -1,5 +1,6 @@
 import { AuditLogViewer } from "@/components/compliance/audit-log-viewer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ExportAuditButton } from "@/components/compliance/export-audit-button"
 
 export default function AuditPage() {
     return (
@@ -10,11 +11,14 @@ export default function AuditPage() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>System Activity</CardTitle>
-                    <CardDescription>
-                        Displaying recent 50 events. Export for full history.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <div>
+                        <CardTitle>System Activity</CardTitle>
+                        <CardDescription>
+                            Displaying recent 50 events. Export for full history.
+                        </CardDescription>
+                    </div>
+                    <ExportAuditButton />
                 </CardHeader>
                 <CardContent>
                     <AuditLogViewer />

@@ -7,7 +7,7 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-                <p className="text-muted-foreground">Monitor your organization's compliance readiness and program trends.</p>
+                <p className="text-muted-foreground">Monitor your organization's compliance readiness and bureau trends.</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Programs</CardTitle>
+                        <CardTitle className="text-sm font-medium">Active Credit Bureaus</CardTitle>
                         <Shield className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>

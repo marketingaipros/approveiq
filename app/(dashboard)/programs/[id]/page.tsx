@@ -8,6 +8,7 @@ import { SeedButton } from "@/components/checklist/seed-button"
 import { notFound } from "next/navigation"
 import { SubmissionControls } from "@/components/checklist/submission-controls"
 import { Badge } from "@/components/ui/badge"
+import { PostSubmissionStatus } from "@/components/checklist/post-submission-status"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -16,14 +17,16 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
     const { id } = await params
     const supabase = await createClient()
 
-    // 1. Fetch Program
+    // 1. Fetch Program & Org
     const { data: program, error: programError } = await supabase
         .from('bureau_programs')
-        .select('*')
+        .select('*, organizations(*)')
         .eq('id', id)
         .single()
 
     const safeProgram = program as any
+    const orgData = safeProgram.organizations || {}
+    const dataCache = orgData.data_cache || {}
 
     if (programError || !safeProgram) {
         notFound()
@@ -73,66 +76,62 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
                 />
             </div>
 
-            {/* Locked Warning */}
-            {isLocked && (
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex items-start gap-3">
-                    <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="text-sm font-semibold">Submited for Bureau Audit</p>
-                        <p className="text-xs text-muted-foreground">
-                            This program is currently locked while undergoing bureau review. No further edits are permitted without administrative intervention.
-                        </p>
+            {/* Locked Content - SUCCESS PATH */}
+            {isLocked ? (
+                <PostSubmissionStatus bureau={safeProgram.bureau} />
+            ) : (
+                <>
+                    {/* Progress Section */}
+                    <div className="bg-card border rounded-lg p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold">Contextual Readiness</span>
+                            <span className="text-sm text-muted-foreground">{safeProgram.progress_percent}% Ready</span>
+                        </div>
+                        <Progress value={safeProgram.progress_percent} className="h-2" />
                     </div>
-                </div>
-            )}
 
-            {/* Progress Section */}
-            <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold">Contextual Readiness</span>
-                    <span className="text-sm text-muted-foreground">{safeProgram.progress_percent}% Ready</span>
-                </div>
-                <Progress value={safeProgram.progress_percent} className="h-2" />
-            </div>
-
-            {/* Checklist */}
-            <div className={`space-y-4 ${isLocked ? 'opacity-80 pointer-events-none' : ''}`}>
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Bureau Requirements</h2>
-                    {itemsError && (
-                        <div className="text-xs text-destructive flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Failed to sync latest requirements.
+                    {/* Checklist */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Bureau Requirements</h2>
+                            {itemsError && (
+                                <div className="text-xs text-destructive flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    Failed to sync latest requirements.
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-                <div className="space-y-4">
-                    {!items || items.length === 0 ? (
-                        <div className="text-center py-12 space-y-4 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground italic">No requirements configured for this program.</p>
-                            <SeedButton programId={safeProgram.id} />
-                        </div>
-                    ) : (
-                        items.map((item: any) => (
-                            <div key={item.id} className="relative group">
-                                <ChecklistItem
-                                    id={item.id}
-                                    title={item.title}
-                                    description={item.description || ''}
-                                    status={item.status as ChecklistItemStatus}
-                                    rejectionReason={item.rejection_reason || undefined}
-                                    isRequired={item.required || false}
-                                />
-                                {item.source_attribution && (
-                                    <div className="absolute top-2 right-14 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded opacity-50 group-hover:opacity-100 transition-opacity">
-                                        {item.source_attribution}
+                        <div className="space-y-4">
+                            {!items || items.length === 0 ? (
+                                <div className="text-center py-12 space-y-4 border-2 border-dashed rounded-lg">
+                                    <p className="text-muted-foreground italic">No requirements configured for this program.</p>
+                                    <SeedButton programId={safeProgram.id} />
+                                </div>
+                            ) : (
+                                items.map((item: any) => (
+                                    <div key={item.id} className="relative group">
+                                        <ChecklistItem
+                                            id={item.id}
+                                            title={item.title}
+                                            description={item.description || ''}
+                                            status={item.status as ChecklistItemStatus}
+                                            rejectionReason={item.rejection_reason || undefined}
+                                            isRequired={item.required || false}
+                                            dataCache={dataCache}
+                                            requirementTag={item.requirement_tag || undefined}
+                                        />
+                                        {item.source_attribution && (
+                                            <div className="absolute top-2 right-14 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded opacity-50 group-hover:opacity-100 transition-opacity">
+                                                {item.source_attribution}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

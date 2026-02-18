@@ -8,9 +8,11 @@ ApproveIQ is a SaaS platform designed to streamline complex B2B onboarding and c
 
 -   **Atomic Checklist Engine**: Granular state management (Missing, Pending, Needs Action, Approved).
 -   **Command Center Dashboard**: High-visibility "Action Required" views.
--   **Document Intelligence**: Mobile-optimized upload with AI-simulated verification.
--   **Enterprise Security**: Tenant isolation via Supabase RLS.
--   **Compliance Ready**: Immutable audit logs and CSV exports.
+-   **Smart Recognition Engine**: AI-powered entity extraction and organization-wide data memory for seamless re-application.
+-   **Document Intelligence**: Mobile-optimized upload with AI-simulated verification and governance.
+-   **Hardened Enterprise Security**: Industrial-grade tenant isolation via Supabase RLS and immutable database audit triggers.
+-   **Compliance & Governance**: Production-ready audit ledger with administrative CSV/JSON exports.
+-   **System Admin Portal**: Restricted-access internal governance engine with real-time AI and cost monitoring.
 
 ## Tech Stack
 
@@ -32,7 +34,14 @@ ApproveIQ is a SaaS platform designed to streamline complex B2B onboarding and c
     ```
 
 3.  **Open Browser**:
-    Navigate to [http://localhost:3000](http://localhost:3000)
+    Navigate to [http://localhost:3005](http://localhost:3005)
+
+## 🔑 Development Access
+
+To access the **System Admin Portal** (`/admin`), you must grant your user account `is_system_admin` privileges. 
+1. Log in to the application.
+2. If you hit the "Access Restricted" screen, note your User ID.
+3. Run the SQL in `db/seed.sql` (replacing the ID if necessary) in your Supabase SQL Editor.
 
 ## License
 

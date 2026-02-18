@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { RejectionCard } from "./rejection-card"
 import { DocumentUpload } from "./document-upload"
-import { updateChecklistItemStatus } from "@/lib/actions"
+import { updateChecklistItemStatus, updateSharedData } from "@/lib/actions"
 import { createClient } from "@/lib/supabase/client"
 import { KnowledgeDrawer } from "./knowledge-drawer"
+import { Sparkles, ArrowUpRight } from "lucide-react"
 
 export type ChecklistItemStatus = 'missing' | 'pending_review' | 'needs_action' | 'approved'
 
@@ -20,12 +21,32 @@ interface ChecklistItemProps {
     status: ChecklistItemStatus
     rejectionReason?: string
     isRequired: boolean
+    dataCache?: Record<string, string>
+    requirementTag?: string
 }
 
-export function ChecklistItem({ id, title, description, status: initialStatus, rejectionReason, isRequired }: ChecklistItemProps) {
+export function ChecklistItem({ id, title, description, status: initialStatus, rejectionReason, isRequired, dataCache = {}, requirementTag }: ChecklistItemProps) {
     const [status, setStatus] = useState<ChecklistItemStatus>(initialStatus)
     const [isExpanded, setIsExpanded] = useState(initialStatus === 'needs_action' || initialStatus === 'missing')
     const [isUploading, setIsUploading] = useState(false)
+
+    // AI Command Center: Data Reuse Detection (Unified via requirement_tag)
+    const cacheKey = requirementTag === 'TAX_ID_VERIFICATION' ? 'ein' :
+        requirementTag === 'SERVICE_AGREEMENT' ? 'agreement_signed' :
+            requirementTag === 'SECURITY_AUDIT' ? 'soc2_status' : null
+
+    const suggestedValue = cacheKey ? dataCache[cacheKey] : null
+
+    const handleReuse = async () => {
+        if (!suggestedValue) return
+        setIsUploading(true)
+        try {
+            await updateChecklistItemStatus(id, 'pending_review', suggestedValue, requirementTag)
+            setStatus('pending_review')
+        } finally {
+            setIsUploading(false)
+        }
+    }
 
     const getStatusIcon = () => {
         switch (status) {
@@ -73,7 +94,19 @@ export function ChecklistItem({ id, title, description, status: initialStatus, r
                 <CardContent className="pt-0 pb-4 pl-[4.5rem] pr-4">
                     <p className="text-muted-foreground mb-4">{description}</p>
 
-                    {/* State-specific Content */}
+                    {/* AI Suggestion Area */}
+                    {status === 'missing' && suggestedValue && (
+                        <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-medium">Found in another application: <span className="font-mono text-xs underline decoration-dotted">{suggestedValue}</span></span>
+                            </div>
+                            <Button size="sm" variant="secondary" onClick={handleReuse} disabled={isUploading} className="gap-1 h-7 text-xs">
+                                Use This <ArrowUpRight className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    )}
+
                     {status === 'missing' && (
                         <DocumentUpload
                             isUploading={isUploading}
@@ -101,7 +134,7 @@ export function ChecklistItem({ id, title, description, status: initialStatus, r
                                         .getPublicUrl(fileName)
 
                                     // 3. Update DB Status via Server Action
-                                    await updateChecklistItemStatus(id, 'pending_review', publicUrl)
+                                    await updateChecklistItemStatus(id, 'pending_review', publicUrl, requirementTag)
                                     setStatus('pending_review')
                                 } finally {
                                     setIsUploading(false)

@@ -20,8 +20,30 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import { isEntitled } from "@/lib/utils"
+import { Lock } from "lucide-react"
 
-export function Sidebar() {
+interface SidebarProps {
+    tier?: string
+}
+
+export function Sidebar({ tier = 'starter' }: SidebarProps) {
+    const NavLink = ({ href, icon: Icon, children, feature }: any) => {
+        const entitled = feature ? isEntitled(tier, feature) : true
+
+        return (
+            <Link
+                href={entitled ? href : "#"}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${entitled ? 'text-muted-foreground' : 'text-muted-foreground/50 cursor-not-allowed grayscale'
+                    }`}
+            >
+                <Icon className="h-4 w-4" />
+                <span className="flex-1">{children}</span>
+                {!entitled && <Lock className="h-3 w-3" />}
+            </Link>
+        )
+    }
+
     return (
         <div className="hidden border-r bg-muted/40 md:block">
             <div className="flex h-full max-h-screen flex-col gap-2">
@@ -37,79 +59,34 @@ export function Sidebar() {
                 </div>
                 <div className="flex-1">
                     <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-                        <Link
-                            href="/"
-                            className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
-                        >
-                            <Home className="h-4 w-4" />
-                            Dashboard
-                        </Link>
-                        <Link
-                            href="/programs"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <ShoppingCart className="h-4 w-4" />
-                            Programs
-                        </Link>
-                        <Link
-                            href="/templates"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <FileCheck className="h-4 w-4" />
-                            Templates
-                        </Link>
-                        <Link
-                            href="/analytics"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <LineChart className="h-4 w-4" />
-                            Analytics
-                        </Link>
-                        <Link
-                            href="/knowledge"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <BookOpen className="h-4 w-4" />
-                            Knowledge Base
-                        </Link>
-                        <Link
-                            href="/settings/users"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Users
-                        </Link>
-                        <Link
-                            href="/settings/audit"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <FileCheck className="h-4 w-4" />
-                            Audit Logs
-                        </Link>
-                        <Link
-                            href="/settings/security"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <ShieldCheck className="h-4 w-4" />
-                            Security
-                        </Link>
+                        <NavLink href="/" icon={Home}>Dashboard</NavLink>
+                        <NavLink href="/organizations" icon={Building2}>Organizations</NavLink>
+                        <NavLink href="/programs" icon={ShoppingCart}>Credit Bureaus</NavLink>
+                        <NavLink href="/templates" icon={FileCheck}>Templates</NavLink>
+                        <NavLink href="/analytics" icon={LineChart} feature="advanced_security">Analytics</NavLink>
+                        <NavLink href="/knowledge" icon={BookOpen}>Knowledge Base</NavLink>
+                        <NavLink href="/settings/users" icon={Users} feature="team_management">Users</NavLink>
+                        <NavLink href="/settings/audit" icon={FileCheck} feature="audit_export">Audit Logs</NavLink>
+                        <NavLink href="/settings/security" icon={ShieldCheck}>Security</NavLink>
                     </nav>
                 </div>
-                <div className="mt-auto p-4">
-                    <Card x-chunk="dashboard-02-chunk-0">
-                        <CardHeader className="p-2 pt-0 md:p-4">
-                            <CardTitle>Upgrade to Pro</CardTitle>
-                            <CardDescription>
-                                Unlock full compliance automation features.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                            <Button size="sm" className="w-full">
-                                Upgrade
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                {tier !== 'enterprise' && (
+                    <div className="mt-auto p-4">
+                        <Card>
+                            <CardHeader className="p-2 pt-0 md:p-4">
+                                <CardTitle>Upgrade to Enterprise</CardTitle>
+                                <CardDescription>
+                                    Unlock Audit Logs, Multi-User, and SBA reporting.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
+                                <Button size="sm" className="w-full">
+                                    Upgrade
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </div>
         </div>
     )

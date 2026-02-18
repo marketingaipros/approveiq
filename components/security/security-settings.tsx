@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ShieldCheck, ShieldAlert, Key, Smartphone, Loader2 } from "lucide-react"
 import { updateSecuritySettings } from "@/lib/actions"
 import { Badge } from "@/components/ui/badge"
+import { maskPII } from "@/lib/utils"
 
 interface SecuritySettingsProps {
     initialMfaEnforced: boolean
@@ -110,6 +111,36 @@ export function SecuritySettings({ initialMfaEnforced, orgName }: SecuritySettin
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Key className="h-5 w-5 text-primary" />
+                        <CardTitle>Company Identification</CardTitle>
+                    </div>
+                    <CardDescription>
+                        Sensitive identifiers required for bureau membership.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase">Federal Tax ID (EIN)</span>
+                            <p className="font-mono text-sm tracking-widest">{maskPII("12-3456789", 'ein')}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase">Compliance Email</span>
+                            <p className="text-sm">{maskPII("compliance@acme-logistics.com", 'email')}</p>
+                        </div>
+                    </div>
+                    <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-md flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 mt-0.5" />
+                        <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                            PII Masking is active. To view full values, an <strong>Enterprise Admin</strong> must perform a secure decryption request.
+                        </p>
                     </div>
                 </CardContent>
             </Card>

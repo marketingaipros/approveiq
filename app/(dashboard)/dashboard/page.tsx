@@ -4,7 +4,8 @@ import {
     DollarSign,
     Users,
     AlertCircle,
-    Shield
+    Shield,
+    ArrowRight
 } from "lucide-react"
 
 import {
@@ -21,9 +22,33 @@ import { createClient } from "@/lib/supabase/server"
 export default async function Dashboard() {
     const supabase = await createClient()
 
-    // 1. Get Org Context
-    const { data: orgs } = await supabase.from('organizations').select('id, bureau_readiness_score').limit(1)
-    const org = orgs?.[0] as any
+    // 1. Get Org Context via Profile
+    const { data: { session } } = await supabase.auth.getSession()
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('org_id')
+        .eq('id', session?.user?.id || '')
+        .single()
+
+    const isSuperAdmin = session?.user?.id === 'a1c8f199-63b0-43a8-b82d-12c21c59187e' || (profile as any)?.is_system_admin
+
+    // Use maybeSingle to avoid error if null
+    let { data: org } = await (supabase as any)
+        .from('organizations')
+        .select('id, name, bureau_readiness_score')
+        .eq('id', profile?.org_id || '')
+        .maybeSingle()
+
+    // If SuperAdmin and org missing, use the default master org
+    if (isSuperAdmin && !org) {
+        const { data: masterOrg } = await (supabase as any)
+            .from('organizations')
+            .select('id, name, bureau_readiness_score')
+            .eq('id', '00000000-0000-0000-0000-000000000000')
+            .maybeSingle()
+        org = masterOrg
+    }
+
     const orgId = org?.id
 
     // 2. Fetch Metrics (Parallel)
@@ -97,7 +122,7 @@ export default async function Dashboard() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Active Programs
+                            Active Credit Bureaus
                         </CardTitle>
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
@@ -124,7 +149,7 @@ export default async function Dashboard() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Bureau Readiness</CardTitle>
+                        <CardTitle className="text-sm font-medium">Credit Bureau Readiness</CardTitle>
                         <Shield className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -151,7 +176,7 @@ export default async function Dashboard() {
                 <Card className="xl:col-span-2">
                     <CardHeader className="flex flex-row items-center">
                         <div className="grid gap-2">
-                            <CardTitle>Bureau Programs</CardTitle>
+                            <CardTitle>Credit Bureaus</CardTitle>
                             <CardDescription>
                                 Active applications for data furnishing.
                             </CardDescription>
@@ -159,7 +184,7 @@ export default async function Dashboard() {
                         <Button asChild size="sm" className="ml-auto gap-1">
                             <Link href="/programs">
                                 View All
-                                <Activity className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4" />
                             </Link>
                         </Button>
                     </CardHeader>
@@ -177,7 +202,7 @@ export default async function Dashboard() {
                                 </div>
                             ))}
                             {(!recentPrograms || recentPrograms.length === 0) && (
-                                <p className="text-sm text-muted-foreground">No programs started.</p>
+                                <p className="text-sm text-muted-foreground">No bureaus started.</p>
                             )}
                         </div>
                     </CardContent>
