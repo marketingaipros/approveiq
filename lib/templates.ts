@@ -101,5 +101,34 @@ export const BUREAU_TEMPLATES: BureauTemplate[] = [
                 required: true
             }
         ]
+    },
+    {
+        id: "sba-8a",
+        name: "SBA 8(a) Certification",
+        description: "Standard checklist for US SBA 8(a) Business Development Program application.",
+        bureau: "experian", // Using 'experian' as a placeholder for general business/gov compliance in this demo context
+        items: [
+            {
+                title: 'Proof of US Citizenship',
+                description: 'Upload valid passport, birth certificate, or naturalization papers.',
+                source_attribution: 'Source: SBA.gov Requirements',
+                requirement_tag: 'CITIZENSHIP_PROOF',
+                required: true
+            },
+            {
+                title: 'Personal Tax Returns (3 Years)',
+                description: 'Upload personal federal tax returns for the last 3 years.',
+                source_attribution: 'Source: SBA Financial Review',
+                requirement_tag: 'TAX_RETURNS_PERSONAL',
+                required: true
+            },
+            {
+                title: 'Personal Net Worth Statement',
+                description: 'Completed SBA Form 413 for each owner >10%.',
+                source_attribution: 'Source: SBA Forms',
+                requirement_tag: 'NET_WORTH_STATEMENT',
+                required: true
+            }
+        ]
     }
 ]

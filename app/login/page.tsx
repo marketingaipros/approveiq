@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ShieldCheck, Lock } from "lucide-react"
 
-export default function LoginPage({
+export default async function LoginPage({
     searchParams,
 }: {
-    searchParams: { error?: string; message?: string }
+    searchParams: Promise<{ error?: string; message?: string }>
 }) {
-    const error = searchParams?.error
-    const message = searchParams?.message
+    const params = await searchParams
+    const error = params?.error
+    const message = params?.message
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-black text-white p-6">

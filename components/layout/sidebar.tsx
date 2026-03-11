@@ -1,6 +1,7 @@
 import Link from "next/link"
 import {
     Bell,
+    Building2,
     Home,
     LineChart,
     Package2,
