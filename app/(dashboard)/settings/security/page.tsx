@@ -7,16 +7,18 @@ export default async function SecurityPage() {
 
     // 1. Fetch Profile & Org Context
     const { data: { session } } = await supabase.auth.getSession()
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
         .from('profiles')
         .select('is_system_admin, org_id')
         .eq('id', session?.user?.id || '')
         .maybeSingle()
+    const profile: any = profileData
 
-    const isSuperAdmin = session?.user?.id === 'a1c8f199-63b0-43a8-b82d-12c21c59187e' || (profile as any)?.is_system_admin
+    const isSuperAdmin = session?.user?.id === 'a1c8f199-63b0-43a8-b82d-12c21c59187e' || profile?.is_system_admin
 
     // Fetch Org Data
-    let { data: org } = await supabase.from('organizations').select('*').eq('id', profile?.org_id || '').maybeSingle()
+    let { data: orgData } = await supabase.from('organizations').select('*').eq('id', profile?.org_id || '').maybeSingle()
+    let org: any = orgData
 
     // Fallback for SuperAdmin
     if (isSuperAdmin && !org) {
