@@ -216,8 +216,35 @@ export async function createProgramFromTemplate(templateId: string) {
     }
     
     // Fallback to offline templates if not found in DB
-    const templateName = dbTemplate?.name || BUREAU_TEMPLATES.find(t => t.id === templateId)?.name;
-    const templateBureau = dbTemplate?.bureau || BUREAU_TEMPLATES.find(t => t.id === templateId)?.bureau;
+    let templateName = dbTemplate?.name || BUREAU_TEMPLATES.find(t => t.id === templateId)?.name;
+    let templateBureau = dbTemplate?.bureau || BUREAU_TEMPLATES.find(t => t.id === templateId)?.bureau;
+
+    // Third path: KB-derived dynamic templates (ID format: "bureau-kb-{uuid}")
+    if (!templateName && templateId.includes('-kb-')) {
+        const kbEntryId = templateId.split('-kb-')[1]
+        if (kbEntryId) {
+            const { data: kbEntry } = await (supabase as any)
+                .from('knowledge_base')
+                .select('id, topic, bureau, rules_json')
+                .eq('id', kbEntryId)
+                .maybeSingle()
+
+            if (kbEntry) {
+                const { buildTemplateFromRules } = await import('@/lib/templates')
+                const builtTemplate = buildTemplateFromRules(kbEntry)
+                templateName = builtTemplate.name
+                templateBureau = builtTemplate.bureau
+                // Use the built template's items as dbItems
+                dbItems = builtTemplate.items.map((item: any) => ({
+                    title: item.title,
+                    description: item.description,
+                    required: item.required,
+                    requirement_tag: item.requirement_tag,
+                    source_attribution: item.source_attribution,
+                }))
+            }
+        }
+    }
 
     if (!templateName) throw new Error("Template not found")
 
