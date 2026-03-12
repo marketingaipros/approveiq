@@ -1,18 +1,8 @@
-import dynamic from "next/dynamic"
+
 import { Sidebar } from "@/components/layout/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-
-// Skip SSR for Header — Radix UI's useId() generates different IDs on
-// server vs client causing hydration mismatches. Dynamic import with
-// ssr:false ensures IDs are only ever generated once, on the client.
-const Header = dynamic(
-    () => import("@/components/layout/header").then(m => m.Header),
-    {
-        ssr: false,
-        loading: () => <div className="flex h-14 shrink-0 items-center border-b px-4 lg:px-6" />
-    }
-)
+import { HeaderWrapper } from "@/components/layout/header-wrapper"
 
 export default async function DashboardLayout({
     children,
@@ -49,7 +39,7 @@ export default async function DashboardLayout({
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
             <Sidebar tier={tier} />
             <div className="flex flex-col">
-                <Header userId={session?.user?.id} />
+                <HeaderWrapper userId={session?.user?.id} />
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {children}
                 </main>
