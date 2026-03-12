@@ -16,13 +16,16 @@ const bureauEntries = [
     {
         bureau: "equifax",
         topic: "Equifax Data Furnisher Requirements",
-        content: `## Equifax CFN Intake Standards\n\nEquifax requires all furnishers to submit data via the CFN (Credit File Network) format. Members must meet a minimum of **500 active accounts** or provide a Lending License as an exception. A dispute documentation policy is required before live reporting begins.`,
+        content: `## Equifax CFN Intake Standards (2023)\n\nEquifax requires all furnishers to submit data via the CFN (Credit File Network) format. Members must meet a minimum of **500 active accounts** (non-financial contributors) or provide a Lending License as an exception. A **Dispute Procedure PDF** must be uploaded before live reporting begins. An initial **3-month historical data load** is required for all new furnishers.`,
         rules_json: {
             min_records: 500,
             requires_dispute_doc: true,
+            requires_dispute_pdf: true,
+            requires_3_months_historical: true,
             requires_lending_license: false,
             repayment_types: ["ACH", "Credit", "Debit"],
-            required_checklist_tags: ["METRO2_VALIDATION", "SERVICE_AGREEMENT", "SECURITY_AUDIT", "DISPUTE_POLICY"]
+            required_checklist_tags: ["METRO2_VALIDATION", "SERVICE_AGREEMENT", "SECURITY_AUDIT", "DISPUTE_POLICY", "HISTORICAL_LOAD"],
+            source_year: 2023
         }
     },
     {

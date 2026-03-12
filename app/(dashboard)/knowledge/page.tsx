@@ -1,101 +1,324 @@
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Info, ShieldCheck } from "lucide-react"
-import ReactMarkdown from 'react-markdown'
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import type { BureauRules } from "@/lib/templates"
+import {
+    ShieldCheck,
+    Zap,
+    BrainCircuit,
+    Link2,
+    FileCheck,
+    Users,
+    Database,
+    AlertTriangle,
+    CheckCircle2,
+    Clock,
+    Info,
+    BookOpen,
+} from "lucide-react"
 
-// Renders compliance rules as readable label chips
-function RulesPanel({ rules }: { rules: BureauRules }) {
-    const chips: string[] = []
-    if (rules.min_records && rules.min_records > 0) chips.push(`Min ${rules.min_records} records`)
-    if (rules.requires_dispute_doc) chips.push("Dispute doc required")
-    if (rules.requires_lending_license) chips.push("Lending license required")
-    if (rules.repayment_types?.length) chips.push(`Payments: ${rules.repayment_types.join(", ")}`)
-    if (rules.required_checklist_tags?.length) chips.push(`${rules.required_checklist_tags.length} checklist items`)
+// ─── Bureau brand config ──────────────────────────────────────────────────────
+const BUREAU_CONFIG: Record<string, {
+    label: string
+    color: string
+    borderColor: string
+    icon: string
+    bgGradient: string
+}> = {
+    equifax: {
+        label: "Equifax",
+        color: "text-red-700",
+        borderColor: "border-red-200",
+        icon: "🔴",
+        bgGradient: "from-red-50 to-rose-50"
+    },
+    experian: {
+        label: "Experian",
+        color: "text-blue-700",
+        borderColor: "border-blue-200",
+        icon: "🔵",
+        bgGradient: "from-blue-50 to-sky-50"
+    },
+    sbfe: {
+        label: "SBFE",
+        color: "text-violet-700",
+        borderColor: "border-violet-200",
+        icon: "🟣",
+        bgGradient: "from-violet-50 to-purple-50"
+    },
+    dnb: {
+        label: "D&B",
+        color: "text-amber-700",
+        borderColor: "border-amber-200",
+        icon: "🟡",
+        bgGradient: "from-amber-50 to-yellow-50"
+    },
+    creditsafe: {
+        label: "Creditsafe",
+        color: "text-emerald-700",
+        borderColor: "border-emerald-200",
+        icon: "🟢",
+        bgGradient: "from-emerald-50 to-green-50"
+    }
+}
 
-    if (chips.length === 0) return null
-
+// ─── Rule row renderer ────────────────────────────────────────────────────────
+function RuleRow({ icon, label, value, highlight = false }: {
+    icon: React.ReactNode
+    label: string
+    value: React.ReactNode
+    highlight?: boolean
+}) {
     return (
-        <div className="mt-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 mb-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-indigo-500" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Live Compliance Rules</p>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-                {chips.map((chip, i) => (
-                    <span
-                        key={i}
-                        className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2.5 py-0.5 font-medium"
-                    >
-                        {chip}
-                    </span>
-                ))}
+        <div className={`flex items-start gap-3 py-2.5 px-3 rounded-lg ${highlight ? "bg-amber-50 border border-amber-100" : "bg-white/60 border border-slate-100"}`}>
+            <span className="mt-0.5 shrink-0 text-slate-400">{icon}</span>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+                <div className="text-sm font-medium text-slate-800 mt-0.5">{value}</div>
             </div>
         </div>
     )
 }
 
-export default async function KnowledgeBasePage() {
+// ─── Bureau Logic Container ───────────────────────────────────────────────────
+function BureauContainer({ bureau, topic, rules, hasRules }: {
+    bureau: string
+    topic: string
+    rules: BureauRules | null
+    hasRules: boolean
+}) {
+    const cfg = BUREAU_CONFIG[bureau.toLowerCase()] || {
+        label: bureau,
+        color: "text-slate-700",
+        borderColor: "border-slate-200",
+        icon: "⚫",
+        bgGradient: "from-slate-50 to-slate-100"
+    }
+
+    return (
+        <Card className={`border-2 ${cfg.borderColor} overflow-hidden`}>
+            {/* Header */}
+            <CardHeader className={`bg-gradient-to-r ${cfg.bgGradient} pb-4`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">{cfg.icon}</span>
+                        <div>
+                            <h2 className={`text-lg font-black ${cfg.color} tracking-tight`}>{cfg.label}</h2>
+                            <p className="text-xs text-slate-500 mt-0.5">{topic}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {rules?.source_year && (
+                            <Badge className="bg-white/80 text-slate-600 border border-slate-200 font-mono text-[10px]">
+                                {rules.source_year} Form
+                            </Badge>
+                        )}
+                        {/* Dynamic Link indicator */}
+                        <Badge className="bg-white/80 text-indigo-600 border border-indigo-200 gap-1 text-[10px]">
+                            <Link2 className="h-2.5 w-2.5" />
+                            Templates Linked
+                        </Badge>
+                        {/* AI Access indicator */}
+                        <Badge className="bg-white/80 text-emerald-600 border border-emerald-200 gap-1 text-[10px]">
+                            <BrainCircuit className="h-2.5 w-2.5" />
+                            AI Read Access
+                        </Badge>
+                    </div>
+                </div>
+            </CardHeader>
+
+            <CardContent className="p-4 space-y-2">
+                {!hasRules ? (
+                    <div className="text-center py-6 text-sm text-muted-foreground flex flex-col items-center gap-2">
+                        <Info className="h-5 w-5 text-slate-300" />
+                        No rules configured yet. Seed the Knowledge Base to unlock.
+                    </div>
+                ) : (
+                    <>
+                        {/* Core volume rules */}
+                        {rules?.min_records !== undefined && (
+                            <RuleRow
+                                highlight={rules.min_records > 0}
+                                icon={<Users className="h-4 w-4" />}
+                                label="Minimum Record Threshold"
+                                value={rules.min_records > 0
+                                    ? <span className="text-amber-700 font-bold">{rules.min_records.toLocaleString()} active accounts required</span>
+                                    : <span className="text-emerald-600">No minimum</span>
+                                }
+                            />
+                        )}
+
+                        {/* 3-month historical load */}
+                        {rules?.requires_3_months_historical && (
+                            <RuleRow
+                                highlight
+                                icon={<Clock className="h-4 w-4" />}
+                                label="Historical Data Load"
+                                value={<span className="text-amber-700 font-bold">3 months of historical data required for initial load</span>}
+                            />
+                        )}
+
+                        {/* Dispute PDF */}
+                        {rules?.requires_dispute_pdf && (
+                            <RuleRow
+                                highlight
+                                icon={<FileCheck className="h-4 w-4" />}
+                                label="Dispute Procedure PDF"
+                                value={<span className="text-red-700 font-bold">Mandatory Dispute Procedure PDF upload required</span>}
+                            />
+                        )}
+
+                        {/* Dispute doc (general) */}
+                        {rules?.requires_dispute_doc && !rules?.requires_dispute_pdf && (
+                            <RuleRow
+                                icon={<FileCheck className="h-4 w-4" />}
+                                label="Dispute Documentation"
+                                value="Dispute handling policy required"
+                            />
+                        )}
+
+                        {/* Lending license */}
+                        {rules?.requires_lending_license && (
+                            <RuleRow
+                                highlight
+                                icon={<ShieldCheck className="h-4 w-4" />}
+                                label="Lending License"
+                                value={<span className="text-amber-700 font-bold">Lending license required for approval</span>}
+                            />
+                        )}
+
+                        {/* Repayment types */}
+                        {rules?.repayment_types && rules.repayment_types.length > 0 && (
+                            <RuleRow
+                                icon={<Database className="h-4 w-4" />}
+                                label="Accepted Payment Types"
+                                value={
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {rules.repayment_types.map((t, i) => (
+                                            <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5 font-mono">{t}</span>
+                                        ))}
+                                    </div>
+                                }
+                            />
+                        )}
+
+                        {/* Checklist items */}
+                        {rules?.required_checklist_tags && rules.required_checklist_tags.length > 0 && (
+                            <RuleRow
+                                icon={<CheckCircle2 className="h-4 w-4" />}
+                                label="Generated Checklist Items"
+                                value={
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {rules.required_checklist_tags.map((tag, i) => (
+                                            <span key={i} className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-2 py-0.5 font-medium border border-indigo-100">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                }
+                            />
+                        )}
+                    </>
+                )}
+
+                {/* Footer sync status */}
+                <div className="pt-2 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-400">
+                    <Zap className="h-3 w-3 text-amber-400" />
+                    Any rule change here auto-updates the linked Template questionnaire
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default async function BureauLogicCenterPage() {
     const supabase = await createClient()
 
+    // Fetch all KB entries (with rules)
     const { data: topics, error } = await supabase
         .from('knowledge_base')
-        .select('*')
-        .order('topic', { ascending: true })
+        .select('id, topic, bureau, rules_json, content')
+        .order('bureau', { ascending: true })
+
+    // Build a map of bureau → kb entry
+    const bureauMap = new Map<string, any>()
+    for (const t of topics || []) {
+        if (t.bureau) bureauMap.set(t.bureau.toLowerCase(), t)
+    }
+
+    // Ensure all 5 bureaus are always shown (even if not yet seeded)
+    const BUREAUS_ORDER = ["equifax", "experian", "sbfe", "dnb", "creditsafe"]
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Knowledge Base</h1>
-                <p className="text-muted-foreground">Procedural standards and technical guidance for credit bureau compliance. Rules here drive Templates and the AI Compliance Agent automatically.</p>
+            {/* Page Header */}
+            <div>
+                <div className="flex items-center gap-3 mb-1">
+                    <BookOpen className="h-7 w-7 text-indigo-600" />
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Bureau Logic Center</h1>
+                </div>
+                <p className="text-slate-500 ml-10">
+                    Single source of truth for all bureau compliance rules. Changes here automatically propagate to Templates and the AI Compliance Agent.
+                </p>
             </div>
 
-            {error ? (
+            {/* System Status Bar */}
+            <div className="flex items-center gap-3 flex-wrap p-3 bg-slate-900 rounded-xl text-xs font-medium">
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                    <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Templates: Live Sync Active
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5 text-indigo-400">
+                    <BrainCircuit className="h-3 w-3" />
+                    AI Agent: Read Access Granted (5 bureaus)
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5 text-amber-400">
+                    <Zap className="h-3 w-3" />
+                    Rule Engine: POST /api/ai/validate
+                </div>
+            </div>
+
+            {error && (
                 <div className="p-4 border border-destructive/20 bg-destructive/10 rounded-lg text-destructive flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    <p>Failed to load knowledge base content.</p>
-                </div>
-            ) : (
-                <div className="grid gap-6 md:grid-cols-2">
-                    {topics?.map((topic: any) => (
-                        <Card key={topic.id} className="h-full flex flex-col hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between mb-2">
-                                    <Badge variant="outline" className="capitalize">{topic.bureau || 'General'}</Badge>
-                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <CardTitle className="text-xl">{topic.topic}</CardTitle>
-                                <CardDescription>Official procedural guidance</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-hidden flex flex-col">
-                                <div className="prose dark:prose-invert prose-sm max-w-none line-clamp-5">
-                                    <ReactMarkdown>{topic.content}</ReactMarkdown>
-                                </div>
-
-                                {/* Render structured rules if available */}
-                                {topic.rules_json && (
-                                    <RulesPanel rules={topic.rules_json as BureauRules} />
-                                )}
-
-                                <div className="pt-4 mt-auto">
-                                    <button className="text-sm font-medium text-primary hover:underline">
-                                        View Full Standard →
-                                    </button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                    <AlertTriangle className="h-4 w-4" />
+                    <p>Failed to load bureau rules. Check your Supabase connection.</p>
                 </div>
             )}
 
-            {topics?.length === 0 && !error && (
-                <div className="text-center py-24 border rounded-lg border-dashed">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No topics found</h3>
-                    <p className="text-muted-foreground">The knowledge base is currently being updated with new bureau standards.</p>
-                </div>
-            )}
+            {/* Bureau Containers Grid */}
+            <div className="grid gap-6 md:grid-cols-2">
+                {/* Equifax gets full width — most complex rule set */}
+                {(() => {
+                    const entry = bureauMap.get("equifax")
+                    return (
+                        <div className="md:col-span-2">
+                            <BureauContainer
+                                bureau="equifax"
+                                topic={entry?.topic || "Equifax Data Furnisher Requirements"}
+                                rules={entry?.rules_json || null}
+                                hasRules={!!entry?.rules_json}
+                            />
+                        </div>
+                    )
+                })()}
+
+                {/* Remaining bureaus in 2-col grid */}
+                {BUREAUS_ORDER.filter(b => b !== "equifax").map(bureau => {
+                    const entry = bureauMap.get(bureau)
+                    return (
+                        <BureauContainer
+                            key={bureau}
+                            bureau={bureau}
+                            topic={entry?.topic || `${BUREAU_CONFIG[bureau]?.label || bureau} Requirements`}
+                            rules={entry?.rules_json || null}
+                            hasRules={!!entry?.rules_json}
+                        />
+                    )
+                })}
+            </div>
         </div>
     )
 }

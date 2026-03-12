@@ -18,9 +18,12 @@ export type BureauTemplate = {
 export type BureauRules = {
     min_records?: number
     requires_dispute_doc?: boolean
+    requires_dispute_pdf?: boolean         // Equifax 2023: mandatory PDF upload
     requires_lending_license?: boolean
+    requires_3_months_historical?: boolean  // Equifax: 3-month initial historical load
     repayment_types?: string[]
     required_checklist_tags?: string[]
+    source_year?: number                   // e.g. 2023
     [key: string]: unknown
 }
 
