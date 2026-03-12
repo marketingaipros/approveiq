@@ -1,7 +1,25 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+
+const BUCKET = "bureau-docs"
+
+/** Ensure the bureau-docs bucket exists (creates it via admin client if missing) */
+async function ensureBucket() {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return // skip if no service key
+    try {
+        const admin = createAdminClient()
+        const { data: buckets } = await admin.storage.listBuckets()
+        const exists = buckets?.some(b => b.name === BUCKET)
+        if (!exists) {
+            await admin.storage.createBucket(BUCKET, { public: true, fileSizeLimit: 10485760 })
+            console.log("✅ Created bureau-docs storage bucket")
+        }
+    } catch (e) {
+        console.warn("Could not auto-create bucket:", e)
+    }
+}
 
 export async function uploadBureauDocument(formData: FormData) {
     const supabase = await createClient()
@@ -14,10 +32,13 @@ export async function uploadBureauDocument(formData: FormData) {
 
     if (!file || !bureau) throw new Error("Missing file or bureau")
 
-    // Upload to Supabase Storage — bucket "bureau-docs"
+    // Auto-create bucket if it doesn't exist
+    await ensureBucket()
+
     const filePath = `${session.user.id}/${bureau}/${Date.now()}_${file.name}`
+
     const { error: uploadError } = await supabase.storage
-        .from("bureau-docs")
+        .from(BUCKET)
         .upload(filePath, file, { upsert: true })
 
     if (uploadError) {
@@ -25,12 +46,8 @@ export async function uploadBureauDocument(formData: FormData) {
         throw new Error(`File upload failed: ${uploadError.message}`)
     }
 
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-        .from("bureau-docs")
-        .getPublicUrl(filePath)
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filePath)
 
-    // Record in bureau_documents table (we'll upsert-create it)
     const { error: dbError } = await (supabase as any)
         .from("bureau_documents")
         .insert({
@@ -43,10 +60,7 @@ export async function uploadBureauDocument(formData: FormData) {
             file_size: file.size,
         })
 
-    if (dbError) {
-        console.error("Bureau doc DB error:", dbError)
-        // Not fatal — file is uploaded, metadata just didn't save
-    }
+    if (dbError) console.error("Bureau doc DB error:", dbError)
 
     revalidatePath("/knowledge")
     return { success: true, url: publicUrl, fileName: file.name }
