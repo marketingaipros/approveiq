@@ -66,6 +66,7 @@ export default async function AdminLayout({
                     <Link href="/admin/dashboard" className="hover:text-red-600 transition-colors">System Overview</Link>
                     <Link href="/admin/clients" className="hover:text-red-600 transition-colors">Clients</Link>
                     <Link href="/admin/programs" className="hover:text-red-600 transition-colors">Bureau Rules</Link>
+                    <Link href="/admin/knowledge" className="hover:text-red-600 transition-colors">Knowledge Base</Link>
                     <Link href="/admin/ai-governance" className="hover:text-red-600 transition-colors">AI & Ethics</Link>
                     <Link href="/admin/audit" className="hover:text-red-600 transition-colors">Audit Engine</Link>
                     <Link href="/admin/settings" className="hover:text-red-600 transition-colors">Config</Link>

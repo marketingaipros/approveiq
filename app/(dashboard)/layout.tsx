@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Sidebar } from "@/components/layout/sidebar"
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 
 export default async function DashboardLayout({
     children,
@@ -22,6 +23,10 @@ export default async function DashboardLayout({
 }) {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+        redirect("/login")
+    }
 
     // 4. Fetch Profile & Org Context
     const { data: profile } = await supabase

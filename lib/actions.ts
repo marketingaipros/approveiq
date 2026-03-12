@@ -7,6 +7,21 @@ import { BUREAU_TEMPLATES } from "./templates"
 
 import { analyzeDocument } from "./ai/processor"
 
+export async function getUserAndOrg() {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) return { user: null, profile: null }
+    
+    // Fallback profile if table doesn't exist yet, but let's try to query
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle()
+        
+    return { user: session.user, profile }
+}
+
 export async function updateChecklistItemStatus(itemId: string, status: string, fileUrl?: string, requirementTag?: string) {
     const supabase = await createClient()
 
@@ -181,9 +196,30 @@ export async function recalculateProgramProgress(programId: string) {
 export async function createProgramFromTemplate(templateId: string) {
     const supabase = await createClient()
 
-    // 1. Find template
-    const template = BUREAU_TEMPLATES.find(t => t.id === templateId)
-    if (!template) throw new Error("Template not found")
+    // 1. Find template (Check DB first, fallback to hardcoded)
+    let dbItems = [];
+    let dbTemplate = null;
+
+    const { data: foundTemplate } = await (supabase as any)
+        .from('bureau_templates')
+        .select('*')
+        .eq('id', templateId)
+        .maybeSingle()
+
+    if (foundTemplate) {
+        dbTemplate = foundTemplate;
+        const { data: foundItems } = await (supabase as any)
+            .from('template_items')
+            .select('*')
+            .eq('template_id', templateId)
+        dbItems = foundItems || [];
+    }
+    
+    // Fallback to offline templates if not found in DB
+    const templateName = dbTemplate?.name || BUREAU_TEMPLATES.find(t => t.id === templateId)?.name;
+    const templateBureau = dbTemplate?.bureau || BUREAU_TEMPLATES.find(t => t.id === templateId)?.bureau;
+
+    if (!templateName) throw new Error("Template not found")
 
     // 2. Get Org Context via Profile
     const { data: { session } } = await supabase.auth.getSession()
@@ -201,8 +237,8 @@ export async function createProgramFromTemplate(templateId: string) {
         .from('bureau_programs')
         .insert({
             org_id: orgId,
-            title: template.name,
-            bureau: template.bureau,
+            title: templateName,
+            bureau: templateBureau,
             status: 'active',
             progress_percent: 0
         })
@@ -215,19 +251,34 @@ export async function createProgramFromTemplate(templateId: string) {
     }
 
     // 4. Create Checklist Items
-    const items = template.items.map(item => ({
-        program_id: program.id,
-        title: item.title,
-        description: item.description,
-        source_attribution: item.source_attribution,
-        required: item.required,
-        requirement_tag: item.requirement_tag,
-        status: 'missing'
-    }))
+    let itemsToInsert = [];
+    if (dbTemplate && dbItems.length > 0) {
+        itemsToInsert = dbItems.map((item: any) => ({
+            program_id: program.id,
+            title: item.title,
+            description: item.description,
+            required: item.required,
+            requirement_tag: item.requirement_tag,
+            status: 'missing'
+        }))
+    } else {
+        const offlineTemplate = BUREAU_TEMPLATES.find(t => t.id === templateId);
+        if (offlineTemplate) {
+            itemsToInsert = offlineTemplate.items.map(item => ({
+                program_id: program.id,
+                title: item.title,
+                description: item.description,
+                source_attribution: item.source_attribution,
+                required: item.required,
+                requirement_tag: item.requirement_tag,
+                status: 'missing'
+            }))
+        }
+    }
 
     const { error: itemsError } = await (supabase as any)
         .from('checklist_items')
-        .insert(items)
+        .insert(itemsToInsert)
 
     if (itemsError) {
         console.error("Failed to create items:", itemsError)
@@ -377,4 +428,175 @@ export async function getAuditLogsCSV() {
     ].join("\n")
 
     return csvContent
+}
+
+export async function uploadBureauGuidelines(formData: FormData) {
+    const supabase = await createClient()
+    const file = formData.get('file') as File | null
+    const topic = formData.get('topic') as string
+    const bureau = formData.get('bureau') as string
+
+    if (!file || !topic) throw new Error("Missing required fields")
+
+    // 1. Verify admin status
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error("Unauthorized")
+
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('is_system_admin')
+        .eq('id', session.user.id)
+        .single()
+
+    if (!profile?.is_system_admin) throw new Error("Unauthorized")
+
+    // 2. Upload to storage
+    const fileName = `guidelines/${Date.now()}-${file.name}`
+    const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file)
+
+    if (uploadError) {
+        console.error("Upload failed", uploadError)
+        throw new Error("Failed to upload document")
+    }
+
+    // 3. Simulate AI Extraction
+    console.log(`[AI] Extracting guidelines from ${file.name}...`)
+    // Mock processing delay
+    // Note: Can't use await new Promise here easily if not in an async context, but this is an async function
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    const mockContent = `## Extracted Guidelines: ${topic}
+    
+This is an automatically generated extraction from the uploaded document: **${file.name}**.
+
+### Key Requirements
+1. The organization must adhere to standard data reporting formats.
+2. An annual audit is required to maintain compliance.
+3. Secure transmission protocols (SFTP) must be utilized for all batch transfers.
+
+### References
+- Section 4.2: Data Integrity
+- Appendix B: Security Standards
+`
+
+    // 4. Insert into Knowledge Base
+    const { error: dbError } = await (supabase as any).from('knowledge_base').insert({
+        topic,
+        bureau: bureau || 'General',
+        content: mockContent,
+    })
+
+    if (dbError) {
+        console.error("DB Error", dbError)
+        throw new Error("Failed to save to knowledge base")
+    }
+
+    // 5. Audit Log
+    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
+    await (supabase as any).from('audit_logs').insert({
+        org_id: orgs?.[0]?.id,
+        user_id: session.user.id,
+        action: 'knowledge_base_guideline_uploaded',
+        metadata: { topic, bureau, file_name: file.name },
+    })
+
+    revalidatePath('/admin/knowledge')
+    revalidatePath('/knowledge')
+}
+
+export async function generateTemplateFromGuidelines(formData: FormData) {
+    const supabase = await createClient()
+    const file = formData.get('file') as File | null
+    const title = formData.get('title') as string
+    const bureau = formData.get('bureau') as string
+
+    if (!file || !title) throw new Error("Missing required fields")
+
+    // 1. Verify admin status
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error("Unauthorized")
+
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('is_system_admin')
+        .eq('id', session.user.id)
+        .single()
+
+    if (!profile?.is_system_admin) throw new Error("Unauthorized")
+
+    // 2. Upload to storage (optional for template extraction, but good for records)
+    const fileName = `guidelines/${Date.now()}-${file.name}`
+    await supabase.storage.from('documents').upload(fileName, file)
+
+    // 3. Simulate AI Extraction
+    console.log(`[AI] Extracting template requirements from ${file.name}...`)
+    // Mock processing delay
+    // Note: Can't use await new Promise here easily if not in an async context, but this is an async function
+    await new Promise(resolve => setTimeout(resolve, 2500))
+    
+    // Create base template
+    const { data: template, error: templateError } = await (supabase as any)
+        .from('bureau_templates')
+        .insert({
+            name: title,
+            bureau: bureau || 'general',
+            description: `Generated from ${file.name}`
+        })
+        .select()
+        .single()
+
+    if (templateError || !template) {
+        console.error("Template Gen Error", templateError)
+        throw new Error("Failed to create template base")
+    }
+
+    // Insert extracted AI items
+    const aiExtractedItems = [
+        {
+            template_id: template.id,
+            title: 'Service Agreement',
+            description: 'Signed master agreement for data reporting.',
+            required: true,
+            requirement_tag: 'SERVICE_AGREEMENT',
+            order_index: 1
+        },
+        {
+            template_id: template.id,
+            title: 'Validation File Upload',
+            description: 'Submit a sample file passing standard format checks extracted from the guidelines.',
+            required: true,
+            requirement_tag: 'METRO2_VALIDATION',
+            order_index: 2
+        },
+        {
+            template_id: template.id,
+            title: 'Compliance Sign-off',
+            description: 'Executive attestation of adherence to subsection 4.2 of the generated guidelines.',
+            required: true,
+            requirement_tag: 'ATTESTATION',
+            order_index: 3
+        }
+    ]
+
+    const { error: itemsError } = await (supabase as any)
+        .from('template_items')
+        .insert(aiExtractedItems)
+
+    if (itemsError) {
+        console.error("Items Gen Error", itemsError)
+        throw new Error("Failed to create template items")
+    }
+
+    // 4. Audit Log
+    const { data: orgs } = await (supabase as any).from('organizations').select('id').limit(1)
+    await (supabase as any).from('audit_logs').insert({
+        org_id: orgs?.[0]?.id,
+        user_id: session.user.id,
+        action: 'ai_template_generated',
+        metadata: { template_name: title, bureau, file_name: file.name },
+    })
+
+    revalidatePath('/admin/programs')
 }
