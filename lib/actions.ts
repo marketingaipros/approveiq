@@ -251,15 +251,15 @@ export async function createProgramFromTemplate(templateId: string) {
     }
 
     // 4. Create Checklist Items
-    let itemsToInsert = [];
+    let itemsToInsert: any[] = [];
     if (dbTemplate && dbItems.length > 0) {
         itemsToInsert = dbItems.map((item: any) => ({
             program_id: program.id,
             title: item.title,
             description: item.description,
             required: item.required,
-            requirement_tag: item.requirement_tag,
-            status: 'missing'
+            status: 'missing',
+            // requirement_tag added conditionally below
         }))
     } else {
         const offlineTemplate = BUREAU_TEMPLATES.find(t => t.id === templateId);
@@ -270,19 +270,35 @@ export async function createProgramFromTemplate(templateId: string) {
                 description: item.description,
                 source_attribution: item.source_attribution,
                 required: item.required,
-                requirement_tag: item.requirement_tag,
-                status: 'missing'
+                status: 'missing',
+                // requirement_tag added conditionally below
             }))
         }
     }
 
-    const { error: itemsError } = await (supabase as any)
+    // Attempt 1: with requirement_tag included (works once column is added)
+    const itemsWithTag = itemsToInsert.map((item, idx) => ({
+        ...item,
+        requirement_tag: dbItems[idx]?.requirement_tag
+            ?? BUREAU_TEMPLATES.find(t => t.id === templateId)?.items[idx]?.requirement_tag
+            ?? null,
+    }))
+
+    let { error: itemsError } = await (supabase as any)
         .from('checklist_items')
-        .insert(itemsToInsert)
+        .insert(itemsWithTag)
+
+    // Attempt 2: if column missing, fall back to inserting without requirement_tag
+    if (itemsError && itemsError.message?.includes('requirement_tag')) {
+        console.warn("requirement_tag column missing – inserting without it. Run db/add_requirement_tag.sql to unlock bureau tagging.")
+        const fallback = await (supabase as any)
+            .from('checklist_items')
+            .insert(itemsToInsert)
+        itemsError = fallback.error
+    }
 
     if (itemsError) {
         console.error("Failed to create items:", itemsError)
-        // Cleanup program? Or just let user retry. Insertion of items is more critical.
         throw new Error(`Failed to populate checklist: ${itemsError.message || JSON.stringify(itemsError)}`)
     }
 
