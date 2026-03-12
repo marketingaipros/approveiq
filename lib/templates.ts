@@ -77,7 +77,7 @@ export function buildTemplateFromRules(kbEntry: {
     return {
         id: `${bureau}-kb-${kbEntry.id}`,
         name: kbEntry.topic,
-        description: kbEntry.content.split("\n").find(l => l && !l.startsWith("#"))?.replace(/\*\*/g, "") || "",
+        description: kbEntry.content?.split("\n").find(l => l && !l.startsWith("#"))?.replace(/\*\*/g, "") || "",
         bureau,
         items
     }

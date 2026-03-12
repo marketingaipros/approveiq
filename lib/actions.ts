@@ -225,7 +225,7 @@ export async function createProgramFromTemplate(templateId: string) {
         if (kbEntryId) {
             const { data: kbEntry } = await (supabase as any)
                 .from('knowledge_base')
-                .select('id, topic, bureau, rules_json')
+                .select('id, topic, bureau, rules_json, content')
                 .eq('id', kbEntryId)
                 .maybeSingle()
 
