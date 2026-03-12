@@ -283,7 +283,7 @@ export async function createProgramFromTemplate(templateId: string) {
     if (itemsError) {
         console.error("Failed to create items:", itemsError)
         // Cleanup program? Or just let user retry. Insertion of items is more critical.
-        throw new Error("Failed to populate checklist")
+        throw new Error(`Failed to populate checklist: ${itemsError.message || JSON.stringify(itemsError)}`)
     }
 
     console.log("Created program from template:", program.id)
