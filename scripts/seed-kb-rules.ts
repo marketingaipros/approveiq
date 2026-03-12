@@ -82,9 +82,20 @@ async function seedKnowledgeBase() {
     console.log("🌱 Seeding knowledge_base with bureau rules...")
 
     for (const entry of bureauEntries) {
+        // Delete existing entries for this bureau first (no unique constraint on bureau)
+        const { error: delError } = await supabase
+            .from('knowledge_base')
+            .delete()
+            .eq('bureau', entry.bureau)
+
+        if (delError) {
+            console.warn(`  ⚠ Could not delete existing ${entry.bureau} entries:`, delError.message)
+        }
+
+        // Insert fresh
         const { error } = await supabase
             .from('knowledge_base')
-            .upsert(entry, { onConflict: 'bureau' })
+            .insert(entry)
 
         if (error) {
             console.error(`❌ Failed to seed ${entry.bureau}:`, error.message)
