@@ -37,7 +37,9 @@ export async function uploadBureauDocument(formData: FormData) {
 
     const filePath = `${session.user.id}/${bureau}/${Date.now()}_${file.name}`
 
-    const { error: uploadError } = await supabase.storage
+    // Use admin client for storage upload — bypasses bucket RLS
+    const admin = createAdminClient()
+    const { error: uploadError } = await admin.storage
         .from(BUCKET)
         .upload(filePath, file, { upsert: true })
 
@@ -46,7 +48,7 @@ export async function uploadBureauDocument(formData: FormData) {
         throw new Error(`File upload failed: ${uploadError.message}`)
     }
 
-    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filePath)
+    const { data: { publicUrl } } = admin.storage.from(BUCKET).getPublicUrl(filePath)
 
     const { error: dbError } = await (supabase as any)
         .from("bureau_documents")
