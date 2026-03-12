@@ -1,8 +1,18 @@
-import Link from "next/link"
-import { Header } from "@/components/layout/header"
+import dynamic from "next/dynamic"
 import { Sidebar } from "@/components/layout/sidebar"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+
+// Skip SSR for Header — Radix UI's useId() generates different IDs on
+// server vs client causing hydration mismatches. Dynamic import with
+// ssr:false ensures IDs are only ever generated once, on the client.
+const Header = dynamic(
+    () => import("@/components/layout/header").then(m => m.Header),
+    {
+        ssr: false,
+        loading: () => <div className="flex h-14 shrink-0 items-center border-b px-4 lg:px-6" />
+    }
+)
 
 export default async function DashboardLayout({
     children,
