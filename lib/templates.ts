@@ -10,9 +10,88 @@ export type BureauTemplate = {
     id: string
     name: string
     description: string
-    bureau: 'experian' | 'equifax' | 'dnb'
+    bureau: string
     items: ChecklistTemplateItem[]
 }
+
+// Mirrors the rules_json JSONB shape in the knowledge_base table
+export type BureauRules = {
+    min_records?: number
+    requires_dispute_doc?: boolean
+    requires_lending_license?: boolean
+    repayment_types?: string[]
+    required_checklist_tags?: string[]
+    [key: string]: unknown
+}
+
+/**
+ * Converts a live Knowledge Base entry (with rules_json) into a BureauTemplate object.
+ * Called by the Templates page to dynamically generate templates from DB rules.
+ */
+export function buildTemplateFromRules(kbEntry: {
+    id: string
+    topic: string
+    content: string
+    bureau: string | null
+    rules_json: BureauRules | null
+}): BureauTemplate {
+    const bureau = kbEntry.bureau || "general"
+    const rules = kbEntry.rules_json || {}
+    const tags = rules.required_checklist_tags || []
+
+    // Map known requirement tags to human-readable checklist items
+    const TAG_LABELS: Record<string, { title: string; description: string }> = {
+        METRO2_VALIDATION:    { title: "Metro 2® File Validation",       description: "Upload a sample file passing the Metro 2® standard format checks." },
+        SERVICE_AGREEMENT:    { title: "Service / Subscriber Agreement",  description: "Upload the signed service agreement for data reporting." },
+        SECURITY_AUDIT:       { title: "Security Audit Attestation",      description: "Upload SOC 2 Type 2 or equivalent attestation." },
+        DISPUTE_POLICY:        { title: "Dispute Documentation Policy",    description: "Submit your consumer dispute handling policy and procedures." },
+        METRO2_TEST_BATCH:    { title: "Metro 2® Test Batch",             description: "Submission of 100+ sample records for quality testing." },
+        SITE_INSPECTION:       { title: "Physical Site Inspection",        description: "Proof of completed third-party site visit or virtual equivalent." },
+        DUNS_VERIFICATION:    { title: "DUNS Number Verification",         description: "Confirm your business DUNS number for entity matching." },
+        AR_SUMMARY:           { title: "Aged A/R Summary Report",          description: "Submit an Aged Accounts Receivable summary for trade reference." },
+        TRANSMISSION_SETUP:   { title: "Secure Transmission Setup",        description: "FTP/SFTP credentials and secure channel configuration." },
+        TAX_ID_VERIFICATION:  { title: "W-9 / Tax ID Verification",        description: "Verification of business entity and federal tax standing." },
+    }
+
+    const items: ChecklistTemplateItem[] = tags.map(tag => ({
+        title: TAG_LABELS[tag]?.title || tag,
+        description: TAG_LABELS[tag]?.description || `Complete the ${tag} requirement.`,
+        required: true,
+        requirement_tag: tag,
+        source_attribution: `Source: ${bureauLabel(bureau)} Compliance Standards`
+    }))
+
+    // If no tags defined, create a generic checklist
+    if (items.length === 0) {
+        items.push({
+            title: "Bureau Service Agreement",
+            description: "Upload your signed service agreement.",
+            required: true,
+            requirement_tag: "SERVICE_AGREEMENT"
+        })
+    }
+
+    return {
+        id: `${bureau}-kb-${kbEntry.id}`,
+        name: kbEntry.topic,
+        description: kbEntry.content.split("\n").find(l => l && !l.startsWith("#"))?.replace(/\*\*/g, "") || "",
+        bureau,
+        items
+    }
+}
+
+function bureauLabel(bureau: string): string {
+    const labels: Record<string, string> = {
+        equifax: "Equifax",
+        experian: "Experian",
+        sbfe: "SBFE",
+        dnb: "D&B",
+        creditsafe: "Creditsafe"
+    }
+    return labels[bureau] || bureau
+}
+
+
 
 export const BUREAU_TEMPLATES: BureauTemplate[] = [
     {
