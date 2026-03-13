@@ -10,7 +10,7 @@ import { StepIndicator } from "@/components/equifax/wizard/step-indicator"
 import { SBFEStep1Requirements } from "./wizard/step1-requirements"
 import { ExperianStep2Profile } from "@/components/experian/wizard/step2-profile"
 import { SBFEStep3Questionnaire } from "./wizard/step3-questionnaire"
-import { ExperianStep4Affiliated } from "@/components/experian/wizard/step4-affiliated"
+import { SBFEStep4DataMapping } from "./wizard/step4-data-mapping"
 import { ExperianStep5Signature } from "@/components/experian/wizard/step5-signature"
 
 interface Props {
@@ -76,7 +76,7 @@ export function SBFEOnboardingDashboard({ initialData, applicationId, status, or
                 {currentStep === 1 && <SBFEStep1Requirements />}
                 {currentStep === 2 && <ExperianStep2Profile org={org} profile={profile} />}
                 {currentStep === 3 && <SBFEStep3Questionnaire data={data} onChange={handleChange} />}
-                {currentStep === 4 && <ExperianStep4Affiliated data={data} onChange={handleChange} />}
+                {currentStep === 4 && <SBFEStep4DataMapping data={data} onChange={handleChange} />}
                 {currentStep === 5 && (
                     <ExperianStep5Signature
                         data={data}

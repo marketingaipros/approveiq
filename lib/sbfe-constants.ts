@@ -17,7 +17,7 @@ All SBFE members are required to submit small business credit data on a monthly 
 
 ### References
 - SBFE Operating Procedures, Section 3.1: Data Contribution Requirements`,
-        rules_json: { tag: "SBFE_GOVERNANCE", category: "reporting_frequency", enforced: true }
+        rules_json: { tags: ["SBFE_GOVERNANCE", "MONTHLY_CONTRIBUTION"], category: "reporting_frequency", enforced: true }
     },
     {
         topic: "Small-Business Credit Originator or Processor Eligibility",

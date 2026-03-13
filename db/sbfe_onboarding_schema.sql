@@ -29,18 +29,36 @@ CREATE TABLE IF NOT EXISTS sbfe_onboarding_data (
     state_of_incorporation TEXT,
 
     -- Step 3: SBFE-Specific Questionnaire
-    primary_reason_for_joining TEXT,   -- New field per user request
+    primary_reason_for_joining TEXT,   -- MANDATORY text field
+    trade_credit_context TEXT,         -- AI Auditor: trade credit explanation if does_trade_credit = true
     is_small_business_originator BOOLEAN,
     does_trade_credit BOOLEAN,
-    annual_account_volume TEXT,        -- Used for dues tier calculation
-    data_use_certification BOOLEAN,    -- Confirms data use restricted to credit/risk
+    annual_account_volume TEXT,
+    data_use_certification BOOLEAN,
     existing_sbfe_member BOOLEAN,
     existing_member_number TEXT,
     other_bureaus_reporting TEXT[],
-    data_transmission_method TEXT,     -- SFTP or 3rd party
+    data_transmission_method TEXT,
     third_party_processor_name TEXT,
 
-    -- Step 4: Authorized Signature
+    -- Step 4: Product Data Mapping (SBFE-specific collateral & charge-off)
+    sbfe_product_type TEXT,
+    sbfe_loan_term TEXT,
+    sbfe_loan_min NUMERIC,
+    sbfe_loan_max NUMERIC,
+    sbfe_loan_avg NUMERIC,
+    sbfe_rate_type TEXT,
+    collateral_requirement TEXT,
+    collateral_type TEXT,
+    collateral_valuation_method TEXT,
+    personal_guarantee_required BOOLEAN,
+    charge_off_days_policy TEXT,
+    charge_off_recovery_reporting TEXT,
+    charge_off_rate_pct NUMERIC,
+    charge_off_recovery_rate_pct NUMERIC,
+    charge_off_notes TEXT,
+
+    -- Step 5: Authorization
     authorized_signer_name TEXT,
     authorized_signer_title TEXT,
     authorized_signer_email TEXT,
