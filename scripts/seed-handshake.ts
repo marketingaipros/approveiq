@@ -34,37 +34,25 @@ async function run() {
     console.log("Creating organization: Apex Commercial Lending, LLC")
     const { data: org, error: orgErr } = await supabase
         .from('organizations')
-        .upsert({
+        .insert({
             name: "Apex Commercial Lending, LLC",
-            data_cache: {
-                company_name: "Apex Commercial Lending, LLC",
-                address: "123 Business Park Way, Frisco, TX 75034",
-                street_address: "123 Business Park Way",
-                city: "Frisco",
-                state: "TX",
-                zip: "75034",
-                ein: "99-1234567",
-                industry: "Commercial Equipment Finance",
-                phone: "(555) 123-4567",
-                website: "https://apexcommerciallending.com",
-            }
-        }, { onConflict: 'name' })
+            company_name: "Apex Commercial Lending, LLC",
+            address: "123 Business Park Way, Frisco, TX 75034",
+            street_address: "123 Business Park Way",
+            city: "Frisco",
+            state: "TX",
+            zip: "75034",
+            ein: "99-1234567",
+            industry: "Commercial Equipment Finance",
+            phone: "(555) 123-4567",
+            website: "https://apexcommerciallending.com",
+        })
         .select()
         .single()
         
     let orgId = org?.id
     if (orgErr) {
-        // Fallback: If some columns don't exist, we'll try just standard ones
-        console.error("Org insert error (might be missing columns):", orgErr.message)
-        const { data: orgFallback, error: orgFallbackErr } = await supabase
-            .from('organizations')
-            .upsert({ name: "Apex Commercial Lending, LLC" })
-            .select().single()
-            
-        if (orgFallbackErr) throw orgFallbackErr
-        orgId = orgFallback.id
-        
-        // We might need to update the table schema if it's missing columns, let's execute SQL via postgres function if any, or just fail for now.
+        throw orgErr
     }
 
     console.log("Created org:", orgId)
