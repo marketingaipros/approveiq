@@ -16,6 +16,9 @@ interface Props {
     applicationId: string
     onSubmitted: () => void
     onChange: (field: string, value: any) => void
+    submitAction?: (applicationId: string) => Promise<any>
+    bureauLabel?: string
+    requirementTag?: string
 }
 
 function ReviewRow({ label, value }: { label: string; value: any }) {
@@ -41,7 +44,7 @@ function ReviewSection({ title, icon: Icon, rows }: { title: string; icon: React
     )
 }
 
-export function ExperianStep5Signature({ data, org, profile, applicationId, onSubmitted, onChange }: Props) {
+export function ExperianStep5Signature({ data, org, profile, applicationId, onSubmitted, onChange, submitAction, bureauLabel = 'Experian', requirementTag = 'EXPERIAN_MEMBERSHIP_APP' }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -57,7 +60,7 @@ export function ExperianStep5Signature({ data, org, profile, applicationId, onSu
         setIsSubmitting(true)
         setError(null)
         try {
-            await submitExperianApplication(applicationId)
+            await (submitAction ?? submitExperianApplication)(applicationId)
             onSubmitted()
         } catch (e: any) {
             setError(e.message || "Submission failed. Please try again.")
@@ -137,9 +140,9 @@ export function ExperianStep5Signature({ data, org, profile, applicationId, onSu
                     />
                     <span className="text-sm text-slate-600 leading-relaxed">
                         I certify that the information provided is accurate and complete. I authorize submission of this application
-                        to Experian on behalf of my company and agree to comply with all Experian membership requirements and data
+                        to {bureauLabel} on behalf of my company and agree to comply with all membership requirements and data
                         contributor standards. <span className="font-semibold">Requirement Tag: </span>
-                        <span className="font-mono text-violet-600 text-xs">EXPERIAN_MEMBERSHIP_APP</span>
+                        <span className="font-mono text-violet-600 text-xs">{requirementTag}</span>
                     </span>
                 </label>
             </div>
@@ -149,7 +152,7 @@ export function ExperianStep5Signature({ data, org, profile, applicationId, onSu
             <div className="flex items-center justify-between p-5 bg-slate-900 rounded-xl">
                 <div>
                     <p className="text-white font-bold">Ready to submit?</p>
-                    <p className="text-slate-400 text-xs mt-0.5">Our compliance team reviews before forwarding to Experian.</p>
+                    <p className="text-slate-400 text-xs mt-0.5">Our compliance team reviews before forwarding to {bureauLabel}.</p>
                 </div>
                 <Button
                     size="lg"
