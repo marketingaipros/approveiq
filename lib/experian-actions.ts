@@ -7,60 +7,78 @@ import { revalidatePath } from "next/cache"
 export async function getOrCreateExperianApplication() {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error("Unauthorized")
+    if (!session?.user) throw new Error("Unauthorized")
 
-    // Fetch profile + org data (shared fields auto-populate from here)
+    // 1. Get the org via RLS (same pattern as rest of app)
+    const { data: orgs } = await (supabase as any)
+        .from('organizations')
+        .select('*')
+        .limit(1)
+
+    if (!orgs || orgs.length === 0) throw new Error("No organization context found.")
+    const org = orgs[0]
+
+    // 2. Get the user profile for contact info
     const { data: profile } = await (supabase as any)
         .from('profiles')
-        .select('org_id, full_name, email, phone')
+        .select('*')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
-    if (!profile?.org_id) throw new Error("No organization context found.")
-
-    const { data: org } = await (supabase as any)
-        .from('organizations')
-        .select('name, address, city, state, zip, website, phone')
-        .eq('id', profile.org_id)
-        .single()
-
-    // Check for existing application
+    // 3. Check for existing application
     let { data: app } = await (supabase as any)
         .from('experian_onboarding_applications')
         .select('*')
-        .eq('org_id', profile.org_id)
+        .eq('org_id', org.id)
         .maybeSingle()
 
     if (!app) {
         const { data: newApp, error: appError } = await (supabase as any)
             .from('experian_onboarding_applications')
-            .insert({ org_id: profile.org_id, status: 'draft' })
+            .insert({ org_id: org.id, status: 'draft' })
             .select()
             .single()
 
-        if (appError) throw new Error("Failed to create Experian application")
+        if (appError) throw new Error("Failed to create Experian application: " + appError.message)
         app = newApp
 
-        await (supabase as any)
+        const { error: dataError } = await (supabase as any)
             .from('experian_onboarding_data')
             .insert({ application_id: app.id })
+
+        if (dataError) throw new Error("Failed to initialize Experian data: " + dataError.message)
     }
 
+    // 4. Fetch the data row
     const { data: experianData } = await (supabase as any)
         .from('experian_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
         .single()
 
+    // Build profile shape — gracefully handle varying column names
+    const profileData = {
+        fullName: profile?.full_name || profile?.name || session.user.email?.split('@')[0] || '',
+        email: profile?.email || session.user.email || '',
+        phone: profile?.phone || profile?.phone_number || '',
+    }
+
+    // Build org shape — gracefully handle varying column names
+    const orgData = {
+        name: org.name || org.company_name || '',
+        address: org.address || org.street_address || '',
+        city: org.city || '',
+        state: org.state || '',
+        zip: org.zip || org.postal_code || '',
+        website: org.website || org.company_website || '',
+        phone: org.phone || org.company_phone || '',
+    }
+
     return {
         application: app,
         data: experianData || {},
-        profile: {
-            fullName: profile.full_name || '',
-            email: profile.email || session.user.email || '',
-            phone: profile.phone || '',
-        },
-        org: org || {}
+        profile: profileData,
+        org: orgData,
     }
 }
 
@@ -73,7 +91,7 @@ export async function updateExperianData(applicationId: string, data: any) {
         .update(data)
         .eq('application_id', applicationId)
 
-    if (error) throw new Error("Failed to save Experian data")
+    if (error) throw new Error("Failed to save Experian data: " + error.message)
 
     revalidatePath('/experian-onboarding')
     return { success: true }
@@ -90,7 +108,7 @@ export async function submitExperianApplication(applicationId: string) {
         .update({ status: 'submitted' })
         .eq('id', applicationId)
 
-    if (error) throw new Error("Failed to submit Experian application")
+    if (error) throw new Error("Failed to submit Experian application: " + error.message)
 
     revalidatePath('/experian-onboarding')
     revalidatePath('/admin/experian')
@@ -98,8 +116,8 @@ export async function submitExperianApplication(applicationId: string) {
 }
 
 /**
- * uploadBureauGuidelines — Seeds the knowledge_base with Experian guidelines
- * and tags them EXPERIAN_MEMBERSHIP_APP for AI Brain access.
+ * uploadBureauGuidelines — Seeds the knowledge_base with bureau guidelines
+ * tagged for AI Brain access.
  */
 export async function uploadBureauGuidelines(bureau: string, guidelines: { topic: string; content: string; rules_json?: any }[]) {
     const supabase = await createClient()
@@ -126,7 +144,6 @@ export async function uploadBureauGuidelines(bureau: string, guidelines: { topic
 export async function generateTemplateFromGuidelines(bureau: string, requirementTag: string) {
     const supabase = await createClient()
 
-    // Fetch all KB entries for this bureau
     const { data: kbEntries } = await (supabase as any)
         .from('knowledge_base')
         .select('id, topic, content, rules_json')
@@ -134,7 +151,6 @@ export async function generateTemplateFromGuidelines(bureau: string, requirement
 
     if (!kbEntries?.length) throw new Error(`No Knowledge Base entries found for bureau: ${bureau}`)
 
-    // Create or replace the template
     const templateName = `${bureau} Membership Application`
     await (supabase as any)
         .from('bureau_templates')
@@ -148,9 +164,8 @@ export async function generateTemplateFromGuidelines(bureau: string, requirement
         .select()
         .single()
 
-    if (tplError) throw new Error("Failed to create template")
+    if (tplError) throw new Error("Failed to create template: " + tplError.message)
 
-    // Create one checklist item per KB entry
     const items = kbEntries.map((entry: any, i: number) => ({
         template_id: template.id,
         title: entry.topic,
@@ -164,7 +179,7 @@ export async function generateTemplateFromGuidelines(bureau: string, requirement
         .from('template_items')
         .insert(items)
 
-    if (itemsError) throw new Error("Failed to populate template items")
+    if (itemsError) throw new Error("Failed to populate template items: " + itemsError.message)
 
     revalidatePath('/templates')
     return { success: true, templateId: template.id, itemCount: items.length }

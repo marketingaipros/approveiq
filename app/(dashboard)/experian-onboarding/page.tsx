@@ -20,8 +20,10 @@ export default async function ExperianOnboardingPage() {
     } catch (e: any) {
         if (e.message === "Unauthorized") redirect("/login")
         return (
-            <div className="p-8 text-center text-red-600 font-bold">
-                Failed to load application. Ensure you are logged in and have an organization context.
+            <div className="p-8 text-center space-y-2">
+                <p className="text-red-600 font-bold">Failed to load Experian application.</p>
+                <p className="text-sm text-slate-500 font-mono">{e.message}</p>
+                <p className="text-xs text-slate-400">Check that the SQL migration has been run in Supabase.</p>
             </div>
         )
     }
