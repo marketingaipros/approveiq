@@ -1,51 +1,44 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { ProgressRing } from "./progress-ring"
-import { BusinessProfileCard } from "./business-profile-card"
-import { ProductDetailsCard } from "./product-details-card"
-import { LegalUploadsCard } from "./legal-uploads-card"
-import { updateEquifaxData } from "@/lib/equifax-actions"
+import { useState, useCallback } from "react"
+import { Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, Info, Loader2, CheckCircle2 } from "lucide-react"
-// Use lodash debounce to avoid spamming the database
-import { debounce } from "lodash" 
+import { ShieldCheck } from "lucide-react"
+import { debounce } from "lodash"
+import { updateEquifaxData } from "@/lib/equifax-actions"
+import { StepIndicator } from "./wizard/step-indicator"
+import { Step1Requirements } from "./wizard/step1-requirements"
+import { Step2CompanyInfo } from "./wizard/step2-company-info"
+import { Step3BusinessModel } from "./wizard/step3-business-model"
+import { Step4Products } from "./wizard/step4-products"
+import { Step5Submit } from "./wizard/step5-submit"
 
-export function OnboardingDashboard({ initialData, applicationId, status }: { initialData: any, applicationId: string, status: string }) {
+interface Props {
+    initialData: any
+    applicationId: string
+    status: string
+}
+
+export function OnboardingDashboard({ initialData, applicationId, status }: Props) {
     const [data, setData] = useState(initialData)
+    const [currentStep, setCurrentStep] = useState(status === 'submitted' ? 5 : 1)
     const [isSaving, setIsSaving] = useState(false)
 
-    // Calculate progress percentage
-    const completionFields = [
-        'company_name_completed', 'company_address_completed', 'company_phone_completed', 
-        'company_website_completed', 'industry_completed', 'repayment_terms_completed', 
-        'loan_ranges_completed', 'estimated_records_completed', 
-        'dispute_procedures_completed', 'lending_license_completed'
-    ]
-    
-    // We count lending license as complete by default if they have > 500 records.
-    // However, the trigger will flag manual review if it's missing and < 500.
-    // For simple UI calc:
-    const totalFields = completionFields.length
-    const completedCount = completionFields.filter(field => data[field] === true).length
-    const progress = (completedCount / totalFields) * 100
-
-    // Debounced save function
     const saveToDb = useCallback(
         debounce(async (newData: any) => {
-            setIsSaving(true);
+            setIsSaving(true)
             try {
                 await updateEquifaxData(applicationId, newData)
             } catch (err) {
-                console.error("Save failed", err)
+                console.error("Auto-save failed", err)
             } finally {
-                setIsSaving(false);
+                setIsSaving(false)
             }
-        }, 1000),
+        }, 1200),
         [applicationId]
     )
 
-    // Handle field changes and trigger auto-save
     const handleChange = (field: string, value: any) => {
         setData((prev: any) => {
             const next = { ...prev, [field]: value }
@@ -54,74 +47,96 @@ export function OnboardingDashboard({ initialData, applicationId, status }: { in
         })
     }
 
-    // Determine the display status
-    let displayStatus = status;
-    let badgeColor = "bg-slate-50 text-slate-500 border-slate-200";
-    
-    if (status === 'manual_review_required') {
-        displayStatus = 'Manual Review Required';
-        badgeColor = "bg-amber-50 text-amber-600 border-amber-200";
-    } else if (progress === 100 && status === 'draft') {
-        displayStatus = 'Ready for Admin Review';
-        badgeColor = "bg-emerald-50 text-emerald-600 border-emerald-200";
-    } else if (status === 'draft') {
-        displayStatus = 'Draft';
-    }
+    const isSubmitted = status === 'submitted'
 
+    const statusLabel = isSubmitted ? "Submitted — Under Review"
+        : status === 'approved' ? "Approved"
+        : status === 'rejected' ? "Rejected"
+        : "Draft"
+
+    const statusColor = isSubmitted ? "bg-blue-50 text-blue-600 border-blue-200"
+        : status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+        : status === 'rejected' ? "bg-red-50 text-red-600 border-red-200"
+        : "bg-slate-50 text-slate-500 border-slate-200"
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-red-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20 pointer-events-none" />
-                
-                <div className="flex-1 space-y-3 z-10">
-                    <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 font-bold uppercase tracking-widest text-[10px] px-3">
-                            <ShieldCheck className="w-3 h-3 mr-1" />
-                            Data Contributor Application
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-red-50 rounded-full blur-3xl opacity-60 -mr-16 -mt-16 pointer-events-none" />
+                <div className="z-10 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 font-bold uppercase tracking-widest text-[10px]">
+                            <ShieldCheck className="w-3 h-3 mr-1" /> Data Contributor Application
                         </Badge>
-                        <Badge variant="outline" className={`font-bold uppercase tracking-widest text-[10px] ${badgeColor}`}>
-                            {displayStatus}
+                        <Badge variant="outline" className={`font-bold uppercase tracking-widest text-[10px] ${statusColor}`}>
+                            {statusLabel}
                         </Badge>
                     </div>
-                    <h1 className="text-3xl font-black italic tracking-tighter text-slate-900">Equifax Onboarding</h1>
-                    <p className="text-sm font-medium text-slate-500 max-w-xl">
-                        Complete the required business and product compliance information to activate direct data transmission via Metro 2® format.
-                    </p>
-                    
-                    <div className="flex items-center gap-2 mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        {isSaving ? (
-                            <><Loader2 className="w-3 h-3 animate-spin text-blue-500" /> Auto-saving...</>
-                        ) : (
-                            <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> All progress saved</>
-                        )}
-                    </div>
+                    <h1 className="text-2xl font-black italic tracking-tighter text-slate-900">Equifax Commercial Onboarding</h1>
+                    <p className="text-xs text-slate-500 font-medium">Complete all steps to submit your application for Equifax Data Contributor eligibility.</p>
                 </div>
-
-                <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm z-10">
-                    <ProgressRing progress={progress} />
+                <div className="z-10 flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    {isSaving ? (
+                        <><Loader2 className="w-3 h-3 animate-spin text-blue-500" /> Saving...</>
+                    ) : (
+                        <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> All progress saved</>
+                    )}
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-6">
-                    <BusinessProfileCard data={data} onChange={handleChange} />
-                    <ProductDetailsCard data={data} onChange={handleChange} />
-                </div>
-                <div className="space-y-6">
-                    <LegalUploadsCard data={data} onChange={handleChange} />
-                    
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex items-start gap-4">
-                        <Info className="w-6 h-6 text-slate-400 shrink-0 mt-1" />
-                        <div>
-                            <h4 className="font-bold text-slate-900 text-sm mb-1 uppercase tracking-widest">Security & Compliance</h4>
-                            <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                All documents are encrypted at rest using AES-256 and transmitted via TLS 1.3. Your application will be subject to a manual risk review if your estimated monthly volume is below 500 records and no valid lending license is provided.
-                            </p>
+            {/* Step Indicator */}
+            <StepIndicator currentStep={isSubmitted ? 6 : currentStep} />
+
+            {/* Step Content */}
+            <div className="min-h-[400px]">
+                {currentStep === 1 && <Step1Requirements />}
+                {currentStep === 2 && <Step2CompanyInfo data={data} onChange={handleChange} />}
+                {currentStep === 3 && <Step3BusinessModel data={data} onChange={handleChange} />}
+                {currentStep === 4 && <Step4Products data={data} onChange={handleChange} />}
+                {currentStep === 5 && (
+                    <Step5Submit
+                        data={data}
+                        applicationId={applicationId}
+                        onSubmitted={() => setCurrentStep(6)}
+                    />
+                )}
+                {currentStep === 6 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                         </div>
+                        <h2 className="text-2xl font-black text-slate-900">Application Submitted</h2>
+                        <p className="text-slate-500 max-w-sm text-sm">Our compliance team will review and contact you within 3–5 business days.</p>
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200">Under Review</Badge>
                     </div>
-                </div>
+                )}
             </div>
+
+            {/* Navigation Buttons */}
+            {currentStep <= 5 && !isSubmitted && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        disabled={currentStep === 1}
+                        onClick={() => setCurrentStep(s => s - 1)}
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Back
+                    </Button>
+
+                    {currentStep < 5 && (
+                        <Button
+                            size="sm"
+                            className="gap-1 bg-red-600 hover:bg-red-700 text-white"
+                            onClick={() => setCurrentStep(s => s + 1)}
+                        >
+                            Next <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

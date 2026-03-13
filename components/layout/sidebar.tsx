@@ -66,6 +66,7 @@ export function Sidebar({ tier = 'starter' }: SidebarProps) {
                         <NavLink href="/templates" icon={FileCheck}>Templates</NavLink>
                         <NavLink href="/analytics" icon={LineChart} feature="advanced_security">Analytics</NavLink>
                         <NavLink href="/knowledge" icon={BookOpen}>Knowledge Base</NavLink>
+                        <NavLink href="/equifax-onboarding" icon={ShieldCheck}>Equifax Onboarding</NavLink>
                         <NavLink href="/settings/users" icon={Users} feature="team_management">Users</NavLink>
                         <NavLink href="/settings/audit" icon={FileCheck} feature="audit_export">Audit Logs</NavLink>
                         <NavLink href="/settings/security" icon={ShieldCheck}>Security</NavLink>

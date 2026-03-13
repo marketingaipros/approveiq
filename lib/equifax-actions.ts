@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 export async function updateEquifaxData(applicationId: string, data: any) {
     const supabase = await createClient()
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('equifax_onboarding_data')
         .update(data)
         .eq('application_id', applicationId)
@@ -16,7 +16,6 @@ export async function updateEquifaxData(applicationId: string, data: any) {
         throw new Error("Failed to save data")
     }
 
-    // Attempt to revalidate the page so changes reflect immediately if re-rendered
     revalidatePath('/equifax-onboarding')
     return { success: true }
 }
@@ -27,7 +26,7 @@ export async function getOrCreateEquifaxApplication() {
 
     if (!session) throw new Error("Unauthorized")
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
         .from('profiles')
         .select('org_id')
         .eq('id', session.user.id)
@@ -36,7 +35,7 @@ export async function getOrCreateEquifaxApplication() {
     if (!profile?.org_id) throw new Error("No organization context found.")
 
     // 1. Check for existing app
-    let { data: app } = await supabase
+    let { data: app } = await (supabase as any)
         .from('equifax_onboarding_applications')
         .select('*')
         .eq('org_id', profile.org_id)
@@ -44,7 +43,7 @@ export async function getOrCreateEquifaxApplication() {
 
     if (!app) {
         // Create new app
-        const { data: newApp, error: appError } = await supabase
+        const { data: newApp, error: appError } = await (supabase as any)
             .from('equifax_onboarding_applications')
             .insert({ org_id: profile.org_id, status: 'draft' })
             .select()
@@ -54,19 +53,39 @@ export async function getOrCreateEquifaxApplication() {
         app = newApp
 
         // Initialize data row
-        const { error: dataError } = await supabase
+        const { error: dataError } = await (supabase as any)
             .from('equifax_onboarding_data')
             .insert({ application_id: app.id })
-            
+
         if (dataError) throw new Error("Failed to initialize data")
     }
 
     // 2. Fetch data
-    const { data: equifaxData } = await supabase
+    const { data: equifaxData } = await (supabase as any)
         .from('equifax_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
         .single()
 
     return { application: app, data: equifaxData || {} }
+}
+
+export async function submitEquifaxApplication(applicationId: string) {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error("Unauthorized")
+
+    const { error } = await (supabase as any)
+        .from('equifax_onboarding_applications')
+        .update({ status: 'submitted' })
+        .eq('id', applicationId)
+
+    if (error) {
+        console.error("Failed to submit application:", error)
+        throw new Error("Failed to submit application")
+    }
+
+    revalidatePath('/equifax-onboarding')
+    revalidatePath('/admin/equifax')
+    return { success: true }
 }
