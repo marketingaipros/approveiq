@@ -42,9 +42,18 @@ export async function getOrCreateExperianApplication() {
         if (appError) throw new Error("Failed to create Experian application: " + appError.message)
         app = newApp
 
+        let ownershipType = null
+        const nameLower = org.name?.toLowerCase() || ""
+        if (nameLower.includes("llc")) ownershipType = "LLC (Multi-Member)"
+        else if (nameLower.includes("inc") || nameLower.includes("corp")) ownershipType = "C-Corporation"
+
         const { error: dataError } = await (supabase as any)
             .from('experian_onboarding_data')
-            .insert({ application_id: app.id })
+            .insert({
+                application_id: app.id,
+                ownership_type: ownershipType,
+                dba_name: org.name
+            })
 
         if (dataError) throw new Error("Failed to initialize Experian data: " + dataError.message)
     }
@@ -65,13 +74,15 @@ export async function getOrCreateExperianApplication() {
 
     // Build org shape — gracefully handle varying column names
     const orgData = {
-        name: org.name || org.company_name || '',
-        address: org.address || org.street_address || '',
-        city: org.city || '',
-        state: org.state || '',
-        zip: org.zip || org.postal_code || '',
-        website: org.website || org.company_website || '',
-        phone: org.phone || org.company_phone || '',
+        name: org.name || org.company_name || org.data_cache?.company_name || org.data_cache?.name || '',
+        address: org.address || org.street_address || org.data_cache?.address || org.data_cache?.street_address || '',
+        city: org.city || org.data_cache?.city || '',
+        state: org.state || org.data_cache?.state || '',
+        zip: org.zip || org.postal_code || org.data_cache?.zip || org.data_cache?.postal_code || '',
+        website: org.website || org.company_website || org.data_cache?.website || '',
+        phone: org.phone || org.company_phone || org.data_cache?.phone || '',
+        ein: org.ein || org.data_cache?.ein || '',
+        industry: org.industry || org.data_cache?.industry || '',
     }
 
     return {
