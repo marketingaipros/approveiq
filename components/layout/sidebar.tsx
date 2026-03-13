@@ -69,6 +69,7 @@ export function Sidebar({ tier = 'starter' }: SidebarProps) {
                         <NavLink href="/equifax-onboarding" icon={ShieldCheck}>Equifax Onboarding</NavLink>
                         <NavLink href="/experian-onboarding" icon={ShieldCheck}>Experian Onboarding</NavLink>
                         <NavLink href="/sbfe-onboarding" icon={ShieldCheck}>SBFE Onboarding</NavLink>
+                        <NavLink href="/dnb-onboarding" icon={ShieldCheck}>D&amp;B Onboarding</NavLink>
                         <NavLink href="/settings/users" icon={Users} feature="team_management">Users</NavLink>
                         <NavLink href="/settings/audit" icon={FileCheck} feature="audit_export">Audit Logs</NavLink>
                         <NavLink href="/settings/security" icon={ShieldCheck}>Security</NavLink>
