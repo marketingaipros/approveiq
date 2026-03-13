@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, CheckCircle2, Database, BookOpen, AlertTriangle } from "lucide-react"
-import { SBFE_KB_RULES } from "@/lib/sbfe-actions"
+import { SBFE_KB_RULES } from "@/lib/sbfe-constants"
 
 interface SeedResult {
     bureau: string
