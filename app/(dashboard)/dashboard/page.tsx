@@ -57,11 +57,17 @@ export default async function Dashboard() {
         .select('*', { count: 'exact' })
         .eq('org_id', orgId || '')
 
-    const pendingQuery = supabase
+    const pendingItemsQuery = supabase
         .from('checklist_items')
         .select('*, bureau_programs!inner(org_id)', { count: 'exact', head: true })
         .eq('status', 'pending_review')
         .eq('bureau_programs.org_id', orgId || '')
+
+    const pendingProgramsQuery = supabase
+        .from('bureau_programs')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['submitted', 'locked_for_review'])
+        .eq('org_id', orgId || '')
 
     // Fetch Recent
     const recentQuery = supabase
@@ -73,9 +79,12 @@ export default async function Dashboard() {
 
     const [
         { count: totalPrograms, data: allPrograms },
-        { count: pendingReviews },
+        { count: pendingItemsCount },
+        { count: pendingProgramsCount },
         { data: recentPrograms }
-    ] = await Promise.all([programsQuery, pendingQuery, recentQuery])
+    ] = await Promise.all([programsQuery, pendingItemsQuery, pendingProgramsQuery, recentQuery])
+
+    const pendingReviews = (pendingItemsCount || 0) + (pendingProgramsCount || 0)
 
     // Calc active users (mock for now as we don't have user table fully populated)
     const activeUsers = 1;
@@ -95,7 +104,7 @@ export default async function Dashboard() {
                             AI Review in Progress
                         </CardTitle>
                         <CardDescription>
-                            {pendingReviews} document{pendingReviews > 1 ? 's' : ''} currently being verified by AI.
+                            {pendingReviews} action{pendingReviews > 1 ? 's' : ''} currently awaiting review.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

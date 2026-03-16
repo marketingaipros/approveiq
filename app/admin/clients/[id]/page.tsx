@@ -1,21 +1,21 @@
-import { createClient } from "@/lib/supabase/server"
-import { ClientDetails } from "@/components/saas/client-details"
+import { createAdminClient } from "@/lib/supabase/server"
 import { AlertCircle } from "lucide-react"
 
 export default async function ClientPage({ params }: { params: { id: string } }) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const id = params.id
 
     // 1. Fetch Client Organization
-    let client;
-    const { data: clientData } = await supabase
+    const { data: clientData, error: clientError } = await (supabase as any)
         .from('organizations')
         .select('*')
         .eq('id', id)
         .single()
-    client = clientData
+        
+    console.log("CLIENT PAGE FETCH:", { id, clientData, clientError });
+    const client: any = clientData
 
-    if (!client) return <div className="flex items-center justify-center min-h-screen"><AlertCircle className="h-8 w-8 text-red-500"/><p className="ml-2">Client not found</p></div>
+    if (!client) return <div className="flex items-center justify-center min-h-screen"><AlertCircle className="h-8 w-8 text-red-500"/><p className="ml-2">Client not found - Check Server Console</p></div>
 
     // 2. Fetch Client Users
     const { data: users } = await supabase
@@ -40,16 +40,17 @@ export default async function ClientPage({ params }: { params: { id: string } })
                 <p className="text-muted-foreground">Manage {client.name}'s subscription and access to your platform.</p>
             </div>
 
-            <ClientDetails
-                clientName={client.name}
-                clientEmail={`${client.name.toLowerCase().replace(/ /g, '.')}@${client.name.toLowerCase().replace(/ /g, '-').substring(0, 3)}.example.com`}
-                subscriptionTier={client.subscription_tier}
-                subscriptionStatus={client.subscription_status || 'active'}
-                bureauReadinessScore={client.bureau_readiness_score}
-                isSuspended={isSuspended}
-                lastBillingDate={client.created_at ? new Date(client.created_at).toISOString() : undefined}
-                lastLoginDate={client.updated_at ? new Date(client.updated_at).toISOString() : undefined}
-            />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border bg-card text-card-foreground shadow space-y-1.5 p-6">
+                    <p className="text-sm font-medium leading-none">Subscription</p>
+                    <p className="text-2xl font-bold capitalize">{client.subscription_tier || 'Starter'}</p>
+                    <p className="text-xs text-muted-foreground capitalize">Status: {client.subscription_status || 'Active'}</p>
+                </div>
+                <div className="rounded-xl border bg-card text-card-foreground shadow space-y-1.5 p-6">
+                    <p className="text-sm font-medium leading-none">Bureau Readiness</p>
+                    <p className="text-2xl font-bold">{client.bureau_readiness_score || 0}%</p>
+                </div>
+            </div>
 
             {/* Audit Logs */}
             {logs && logs.length > 0 && (
@@ -65,7 +66,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {logs.map((log) => (
+                                {logs.map((log: any) => (
                                     <tr key={log.id}>
                                         <td className="px-4 py-2 text-sm text-muted-foreground whitespace-nowrap">
                                             {new Date(log.created_at).toISOString()}

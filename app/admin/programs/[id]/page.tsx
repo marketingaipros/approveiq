@@ -10,11 +10,12 @@ export default async function AdminProgramDetailsPage({ params }: { params: Prom
     const { id } = await params
     const supabase = await createClient()
 
-    const { data: program } = await supabase
+    const { data: programData } = await supabase
         .from('bureau_programs')
         .select('*')
         .eq('id', id)
         .single()
+    const program: any = programData;
 
     if (!program) {
         notFound()

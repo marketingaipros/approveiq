@@ -16,14 +16,18 @@ import { createClient } from "@/lib/supabase/server"
 export default async function ProgramsPage() {
     const supabase = await createClient()
 
-    // 1. Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // 2. Mock Org ID for prototype (In real app, we'd fetch from user metadata or context)
-    // For now, we fetch the FIRST org we find to demonstrate connectivity.
-    const { data: orgs } = await supabase.from('organizations').select('id').limit(1)
-    const org = orgs?.[0] as any
-    const orgId = org?.id
+    // 1. Get current user profile and org_id
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    let orgId = null;
+    if (session?.user) {
+        const { data: profile } = await (supabase as any)
+            .from('profiles')
+            .select('org_id')
+            .eq('id', session.user.id)
+            .single()
+        orgId = profile?.org_id
+    }
 
     let programs: any[] = []
     let error = null

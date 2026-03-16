@@ -62,7 +62,10 @@ export async function uploadBureauDocument(formData: FormData) {
             file_size: file.size,
         })
 
-    if (dbError) console.error("Bureau doc DB error:", dbError)
+    if (dbError) {
+        console.error("Bureau doc DB error:", dbError)
+        throw new Error(`Database insert failed: ${dbError.message || JSON.stringify(dbError)}`)
+    }
 
     revalidatePath("/knowledge")
     return { success: true, url: publicUrl, fileName: file.name }

@@ -16,11 +16,13 @@ export default async function AdminLayout({
     if (!session) redirect("/login")
 
     // 2. Verify System Admin Status
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
         .single()
+
+    const profile: any = profileData;
 
     if (!profile?.is_system_admin) {
         return (

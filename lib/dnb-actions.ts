@@ -4,8 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { DNB_KB_RULES } from "@/lib/dnb-constants"
 
-export { DNB_KB_RULES }
-
 export async function seedDNBKnowledgeBase() {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()

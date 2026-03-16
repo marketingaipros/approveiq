@@ -13,11 +13,12 @@ async function verifySystemAdmin() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error("Unauthorized")
 
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
         .single()
+    const profile: any = profileData;
 
     if (!profile?.is_system_admin) {
         throw new Error("DANGER: Unauthorized administrative attempt detected.")
@@ -31,7 +32,7 @@ export async function toggleClientAccess(orgId: string, suspend: boolean) {
     const supabase = await createClient()
 
     // Update organization status
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('organizations')
         .update({ subscription_status: suspend ? 'suspended' : 'active' })
         .eq('id', orgId)
@@ -39,7 +40,7 @@ export async function toggleClientAccess(orgId: string, suspend: boolean) {
     if (error) throw error
 
     // Log the action
-    await supabase.from('audit_logs').insert({
+    await (supabase as any).from('audit_logs').insert({
         action: suspend ? 'client_suspended' : 'client_activated',
         user_id: adminId,
         metadata: { org_id: orgId, target: 'organization_status' },
@@ -55,7 +56,7 @@ export async function updateBureauProgramRule(programId: string, updates: any) {
     const supabase = await createClient()
 
     // This would ideally update a global template, but for now updates a specific instance
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('bureau_programs')
         .update(updates)
         .eq('id', programId)

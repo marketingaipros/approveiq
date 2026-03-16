@@ -34,16 +34,17 @@ export async function createDynamicRequirement(req: Omit<DynamicRequirement, 'id
     if (!user) throw new Error("Unauthorized")
 
     // Find highest display order
-    const { data: maxOrder } = await supabase
+    const { data: maxOrderData } = await supabase
         .from('dynamic_requirements')
         .select('display_order')
         .order('display_order', { ascending: false })
         .limit(1)
         .single()
+    const maxOrder: any = maxOrderData;
         
     const nextOrder = maxOrder ? (maxOrder.display_order || 0) + 1 : 1;
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('dynamic_requirements')
         .insert({
             bureau_name: req.bureau_name,
@@ -70,7 +71,7 @@ export async function createBureau(name: string, description: string = '') {
     const { user } = await getUserAndOrg()
     if (!user) throw new Error("Unauthorized")
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('bureaus')
         .insert({ name, description })
 

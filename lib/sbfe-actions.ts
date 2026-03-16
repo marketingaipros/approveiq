@@ -4,8 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { SBFE_KB_RULES } from "@/lib/sbfe-constants"
 
-export { SBFE_KB_RULES }
-
 /** Seed the SBFE Knowledge Base container with 4 manual rules */
 export async function seedSBFEKnowledgeBase() {
     const supabase = await createClient()

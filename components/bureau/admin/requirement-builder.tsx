@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { createBureau } from "@/lib/bureau-admin-actions"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"

@@ -72,7 +72,7 @@ export async function addBureau(bureauName: string) {
     const { user, profile } = await getUserAndOrg()
     if (!user || !profile?.org_id) throw new Error("Unauthorized")
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('bureau_applications')
         .insert({
             org_id: profile.org_id,
@@ -108,7 +108,7 @@ export async function saveDynamicAnswer(requirementId: string, answerValue: stri
     if (!user || !profile?.org_id) throw new Error("Unauthorized")
 
     // Upsert the answer
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('dynamic_answers')
         .upsert({
             org_id: profile.org_id,
@@ -120,11 +120,12 @@ export async function saveDynamicAnswer(requirementId: string, answerValue: stri
     if (error) throw error
 
     // Fetch the requirement to check for JSONB validation rules
-    const { data: req } = await supabase
+    const { data: reqData } = await supabase
         .from('dynamic_requirements')
         .select('*')
         .eq('id', requirementId)
         .single()
+    const req: any = reqData;
         
     if (req?.validation_rules) {
         // Implementation of 500 records logic mapping
@@ -135,7 +136,7 @@ export async function saveDynamicAnswer(requirementId: string, answerValue: stri
                 // Determine which bureau this belongs to (or all if Global)
                 const targetBureau = req.bureau_name === 'Global' ? undefined : req.bureau_name;
                 
-                let query = supabase.from('bureau_applications').update({ status: 'manual_review_required' }).eq('org_id', profile.org_id).eq('status', 'draft')
+                let query = (supabase as any).from('bureau_applications').update({ status: 'manual_review_required' }).eq('org_id', profile.org_id).eq('status', 'draft')
                 if (targetBureau) {
                     query = query.eq('bureau_name', targetBureau)
                 }
@@ -154,20 +155,22 @@ export async function saveDynamicAnswer(requirementId: string, answerValue: stri
         .is('completed_at', null);
     
     if (activeBureaus && activeBureaus.length > 0) {
-        const { data: allReqs } = await supabase.from('dynamic_requirements').select('*').eq('is_required', true);
-        const { data: allAnswers } = await supabase.from('dynamic_answers').select('*').eq('org_id', profile.org_id);
+        const { data: allReqsData } = await (supabase as any).from('dynamic_requirements').select('*').eq('is_required', true);
+        const { data: allAnswersData } = await (supabase as any).from('dynamic_answers').select('*').eq('org_id', profile.org_id);
+        const allReqs: any[] = allReqsData || [];
+        const allAnswers: any[] = allAnswersData || [];
         
-        if (allReqs && allAnswers) {
-            const answeredIds = new Set(allAnswers.filter(a => a.answer_value && a.answer_value.trim() !== "").map(a => a.requirement_id));
-            const globalReqs = allReqs.filter(r => r.bureau_name === 'Global').map(r => r.id);
+        if (allReqs.length > 0 && allAnswers.length > 0) {
+            const answeredIds = new Set(allAnswers.filter((a: any) => a.answer_value && a.answer_value.trim() !== "").map((a: any) => a.requirement_id));
+            const globalReqs = allReqs.filter((r: any) => r.bureau_name === 'Global').map((r: any) => r.id);
             
-            for (const b of activeBureaus) {
-                const bureauReqs = allReqs.filter(r => r.bureau_name === b.bureau_name).map(r => r.id);
+            for (const b of activeBureaus as any[]) {
+                const bureauReqs = allReqs.filter((r: any) => r.bureau_name === b.bureau_name).map((r: any) => r.id);
                 const combinedReqs = [...globalReqs, ...bureauReqs];
                 
                 // Ensure there actually are requirements, and that they are all answered
                 if (combinedReqs.length > 0 && combinedReqs.every(id => answeredIds.has(id))) {
-                     await supabase.from('bureau_applications')
+                     await (supabase as any).from('bureau_applications')
                         .update({ status: 'pending_bureau', completed_at: new Date().toISOString() })
                         .eq('id', b.id);
                 }

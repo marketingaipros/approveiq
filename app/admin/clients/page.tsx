@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -6,10 +6,10 @@ import { Building2, Search, Filter, ShieldCheck, ShieldAlert, MoreVertical } fro
 import Link from "next/link"
 
 export default async function AdminClientsPage() {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Fetch all organizations
-    const { data: clients, error } = await supabase
+    const { data: clients, error } = await (supabase as any)
         .from('organizations')
         .select('*')
         .order('name', { ascending: true })

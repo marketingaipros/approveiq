@@ -74,7 +74,7 @@ export function Sidebar({ tier = 'starter', isAdmin = false }: SidebarProps) {
                         {isAdmin && (
                             <>
                                 <div className="pt-4 pb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Admin Controls</div>
-                                <NavLink href="/organizations" icon={Building2}>Organizations</NavLink>
+                                <NavLink href="/admin/clients" icon={Building2}>Organizations</NavLink>
                                 <NavLink href="/templates" icon={FileCheck}>Templates</NavLink>
                                 <NavLink href="/knowledge" icon={BookOpen}>Knowledge Base</NavLink>
                                 <NavLink href="/admin/equifax" icon={Building2}>Admin: Equifax</NavLink>

@@ -20,7 +20,7 @@ export function transformToMetro2(data: UploadRow[]): string {
     const bodyRows = data.map(row => {
         // Metro 2 uses base segments (J1, J2, etc)
         // Here we just represent a fixed-ish looking string
-        return `BASE_SEGMENT|${row.AccountID.padEnd(20)}|${row.LegalName.padEnd(30)}|${row.EIN.padEnd(9)}|${row.OpenDate.padEnd(8)}|${row.Balance.padStart(10, '0')}|${row.PastDue.padStart(10, '0')}|${row.Status.padEnd(2)}`;
+        return `BASE_SEGMENT|${(row.AccountID || '').padEnd(20)}|${(row.LegalName || '').padEnd(30)}|${(row.EIN || '').padEnd(9)}|${(row.OpenDate || '').padEnd(8)}|${(row.Balance || '').padStart(10, '0')}|${(row.PastDue || '').padStart(10, '0')}|${(row.Status || '').padEnd(2)}`;
     }).join('\n');
     
     return headerRow + bodyRows + `\nMETRO2_TRAILER_RECORD`;

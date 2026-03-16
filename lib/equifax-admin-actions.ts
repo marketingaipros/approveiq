@@ -41,7 +41,7 @@ export async function getPendingEquifaxApplications() {
 
     // Filter down to applications where the data portion is 100% complete
     // Some logic could be pushed to the DB logic, but since we calculate completion on the fly:
-    const readyApplications = (applications || []).filter(app => {
+    const readyApplications = (applications || []).filter((app: any) => {
         const data = app.equifax_onboarding_data?.[0];
         if (!data) return false;
 
@@ -75,7 +75,7 @@ export async function verifyEquifaxApplication(applicationId: string, memberNumb
 
     const newStatus = isApproved ? 'approved' : 'rejected'
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('equifax_onboarding_applications')
         .update({
             status: newStatus,
@@ -102,7 +102,7 @@ export async function updateTransmissionSetup(applicationId: string, transmissio
     const { user } = await getUserAndOrg()
     if (!user) throw new Error("Unauthorized")
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('equifax_onboarding_applications')
         .update({
             transmission_type: transmissionType,

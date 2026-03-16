@@ -174,7 +174,7 @@ export default async function BureauLogicCenterPage() {
         if (basic.error) {
             hadError = true
         } else {
-            topics = (basic.data || []).map(t => ({ ...t, rules_json: null }))
+            topics = (basic.data || []).map((t: any) => ({ ...t, rules_json: null }))
         }
     } else {
         topics = full.data || []
