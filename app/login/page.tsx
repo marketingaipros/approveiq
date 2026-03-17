@@ -51,6 +51,18 @@ export default async function LoginPage({
                                 className="bg-zinc-950 border-zinc-800 focus:ring-red-500 text-white"
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fullName" className="text-zinc-300">Full Name</Label>
+                            <Input id="fullName" name="fullName" placeholder="John Doe" required className="bg-zinc-950 border-zinc-800 focus:ring-red-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="companyName" className="text-zinc-300">Company Name</Label>
+                            <Input id="companyName" name="companyName" placeholder="Acme Corp" required className="bg-zinc-950 border-zinc-800 focus:ring-red-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ein" className="text-zinc-300">Tax ID (EIN)</Label>
+                            <Input id="ein" name="ein" placeholder="XX-XXXXXXX" required className="bg-zinc-950 border-zinc-800 focus:ring-red-500" />
+                        </div>
 
                         {error && (
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-xs font-medium">

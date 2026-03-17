@@ -64,12 +64,20 @@ ALTER TABLE experian_onboarding_data ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Org access experian applications" ON experian_onboarding_applications;
 CREATE POLICY "Org access experian applications"
   ON experian_onboarding_applications FOR ALL
-  USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+  USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
 
 DROP POLICY IF EXISTS "Org access experian data" ON experian_onboarding_data;
 CREATE POLICY "Org access experian data"
   ON experian_onboarding_data FOR ALL
   USING (
+    application_id IN (
+      SELECT eoa.id FROM experian_onboarding_applications eoa
+      JOIN profiles p ON p.org_id = eoa.org_id
+      WHERE p.id = auth.uid()
+    )
+  )
+  WITH CHECK (
     application_id IN (
       SELECT eoa.id FROM experian_onboarding_applications eoa
       JOIN profiles p ON p.org_id = eoa.org_id

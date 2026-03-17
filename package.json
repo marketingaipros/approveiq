@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.94.1",

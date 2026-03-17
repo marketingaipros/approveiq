@@ -9,21 +9,24 @@ export async function getOrCreateExperianApplication() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) throw new Error("Unauthorized")
 
-    // 1. Get the org via RLS (same pattern as rest of app)
-    const { data: orgs } = await (supabase as any)
-        .from('organizations')
-        .select('*')
-        .limit(1)
-
-    if (!orgs || orgs.length === 0) throw new Error("No organization context found.")
-    const org = orgs[0]
-
-    // 2. Get the user profile for contact info
-    const { data: profile } = await (supabase as any)
+    // 1. Get the user profile to find their assigned org_id
+    const { data: profile, error: pError } = await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle()
+
+    if (pError || !profile) throw new Error("No user profile found.")
+    if (!profile.org_id) throw new Error("No organization assigned to this user.")
+
+    // 2. Get the specific organization
+    const { data: org, error: orgError } = await (supabase as any)
+        .from('organizations')
+        .select('*')
+        .eq('id', profile.org_id)
+        .maybeSingle()
+
+    if (orgError || !org) throw new Error("Organization context not found.")
 
     // 3. Check for existing application
     let { data: app } = await (supabase as any)

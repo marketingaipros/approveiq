@@ -33,49 +33,49 @@ export async function logout() {
 export async function signup(formData: FormData) {
     const supabase = await createClient()
 
+    // 1. Capture REAL data from the new form fields
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    const fullName = formData.get('fullName') as string
+    const companyName = formData.get('companyName') as string
+    const ein = formData.get('ein') as string
 
-    const { data: { user, session }, error } = await supabase.auth.signUp({
+    const { data: { user }, error } = await supabase.auth.signUp({
         email,
         password,
     })
 
-    if (error) {
-        return redirect(`/login?error=${encodeURIComponent(error.message)}`)
-    }
+    if (error) return redirect(`/login?error=${encodeURIComponent(error.message)}`)
 
     if (user) {
         try {
-            // Essential Onboarding: Create Org & Profile using Service Role (Admin)
-            // to bypass RLS policies for new user setup
             const supabaseAdmin = createAdminClient() as any
 
+            // 2. Create the Organization using the user's actual Company Name and EIN
             const { data: org, error: orgError } = await supabaseAdmin
                 .from('organizations')
                 .insert({
-                    name: 'Miller Incorporation',
+                    name: companyName,
+                    data_cache: { ein: ein }, // This is the "Universal Data" for auto-population
                     subscription_tier: 'starter',
                     subscription_status: 'active'
                 })
-                .select()
-                .single()
+                .select().single()
 
             if (org && !orgError) {
+                // 3. Create the Profile using the user's actual Full Name
                 await supabaseAdmin.from('profiles').insert({
                     id: user.id,
                     org_id: org.id,
-                    full_name: 'Chris Miller',
+                    full_name: fullName,
                     role: 'Owner',
                     is_system_admin: false
                 })
             }
         } catch (error) {
-            console.error("Onboarding Error: Admin client creation failed (likely missing SUPABASE_SERVICE_ROLE_KEY)", error)
-            // Continue to dashboard anyway so user isn't stuck
+            console.error("Onboarding Error:", error)
         }
     }
 
-    // Bypass email verification notice for demo flow
     return redirect('/dashboard')
 }
