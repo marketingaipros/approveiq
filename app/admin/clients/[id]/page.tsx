@@ -1,9 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/server"
 import { AlertCircle } from "lucide-react"
 
-export default async function ClientPage({ params }: { params: { id: string } }) {
+export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
     const supabase = createAdminClient()
-    const id = params.id
+    const { id } = await params;
 
     // 1. Fetch Client Organization
     const { data: clientData, error: clientError } = await (supabase as any)
@@ -11,11 +11,11 @@ export default async function ClientPage({ params }: { params: { id: string } })
         .select('*')
         .eq('id', id)
         .single()
-        
+
     console.log("CLIENT PAGE FETCH:", { id, clientData, clientError });
     const client: any = clientData
 
-    if (!client) return <div className="flex items-center justify-center min-h-screen"><AlertCircle className="h-8 w-8 text-red-500"/><p className="ml-2">Client not found - Check Server Console</p></div>
+    if (!client) return <div className="flex items-center justify-center min-h-screen"><AlertCircle className="h-8 w-8 text-red-500" /><p className="ml-2">Client not found - Check Server Console</p></div>
 
     // 2. Fetch Client Users
     const { data: users } = await supabase
