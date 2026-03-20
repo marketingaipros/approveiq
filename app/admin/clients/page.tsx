@@ -8,11 +8,36 @@ import Link from "next/link"
 export default async function AdminClientsPage() {
     const supabase = createAdminClient()
 
-    // Fetch all organizations
-    const { data: clients, error } = await (supabase as any)
-        .from('organizations')
-        .select('*')
-        .order('name', { ascending: true })
+    let clients: any[] = []
+    let error: any = null
+
+    try {
+        const { data, error: fetchError } = await (supabase as any)
+            .from('organizations')
+            .select('*')
+            .order('name', { ascending: true })
+        
+        clients = data || []
+        error = fetchError
+    } catch (e: any) {
+        console.error("Admin Fetch Error:", e)
+        error = e
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 text-center bg-red-50 border border-red-200 rounded-2xl">
+                <ShieldAlert className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-red-900 mb-2">Platform Engine Failure</h2>
+                <p className="text-red-600 max-w-md mx-auto mb-6">
+                    Failed to fetch tenant data. This usually indicates the <code className="bg-red-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> is missing or invalid on the server.
+                </p>
+                <div className="text-left bg-slate-900 text-slate-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    {JSON.stringify(error, null, 2)}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-8">
