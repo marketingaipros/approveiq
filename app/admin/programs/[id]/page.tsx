@@ -14,7 +14,7 @@ export default async function AdminProgramDetailsPage({ params }: { params: Prom
         .from('bureau_programs')
         .select('*')
         .eq('id', id)
-        .single()
+        .maybeSingle()
     const program: any = programData;
 
     if (!program) {

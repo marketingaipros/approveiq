@@ -28,7 +28,7 @@ export default async function Dashboard() {
         .from('profiles')
         .select('org_id')
         .eq('id', session?.user?.id || '')
-        .single()
+        .maybeSingle()
 
     const isSuperAdmin = session?.user?.id === 'a1c8f199-63b0-43a8-b82d-12c21c59187e' || (profile as any)?.is_system_admin
 

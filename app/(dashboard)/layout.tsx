@@ -21,13 +21,13 @@ export default async function DashboardLayout({
         .from('profiles')
         .select('is_system_admin, org_id')
         .eq('id', session?.user?.id || '')
-        .single()
+        .maybeSingle()
 
     const { data: org } = await (supabase as any)
         .from('organizations')
         .select('subscription_tier')
         .eq('id', (profile as any)?.org_id || '')
-        .single()
+        .maybeSingle()
 
     // Hardcoded bypass for the primary developer ID to ensure zero-lock visibility
     const isSuperAdmin = session?.user?.id === 'a1c8f199-63b0-43a8-b82d-12c21c59187e' || (profile as any)?.is_system_admin

@@ -20,7 +20,7 @@ export default async function AdminLayout({
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
     const profile: any = profileData;
 

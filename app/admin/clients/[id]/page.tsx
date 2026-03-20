@@ -10,7 +10,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         .from('organizations')
         .select('*')
         .eq('id', id)
-        .single()
+        .maybeSingle()
 
     console.log("CLIENT PAGE FETCH:", { id, clientData, clientError });
     const client: any = clientData

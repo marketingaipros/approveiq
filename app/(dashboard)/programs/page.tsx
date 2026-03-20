@@ -25,7 +25,7 @@ export default async function ProgramsPage() {
             .from('profiles')
             .select('org_id')
             .eq('id', session.user.id)
-            .single()
+            .maybeSingle()
         orgId = profile?.org_id
     }
 

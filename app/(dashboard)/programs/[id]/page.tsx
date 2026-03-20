@@ -22,7 +22,7 @@ export default async function ProgramDetailsPage({ params }: { params: Promise<{
         .from('bureau_programs')
         .select('*, organizations(*)')
         .eq('id', id)
-        .single()
+        .maybeSingle()
 
     const safeProgram = program as any
     const orgData = safeProgram.organizations || {}

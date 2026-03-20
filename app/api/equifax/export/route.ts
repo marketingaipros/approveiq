@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         .from("equifax_onboarding_data")
         .select("*")
         .eq("application_id", applicationId)
-        .single()
+        .maybeSingle()
 
     if (error || !data) {
         return NextResponse.json({ error: "Application not found" }, { status: 404 })
