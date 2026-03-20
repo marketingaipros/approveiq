@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 export function Header({ userId }: { userId?: string }) {
     return (
@@ -29,6 +29,10 @@ export function Header({ userId }: { userId?: string }) {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="flex flex-col">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Navigation Menu</SheetTitle>
+                        <SheetDescription>Access different sections of ApproveIQ.</SheetDescription>
+                    </SheetHeader>
                     <nav className="grid gap-2 text-lg font-medium">
                         <Link
                             href="#"

@@ -42,13 +42,13 @@ export function UploadTemplateButton() {
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Generate AI Template</DialogTitle>
+                    <DialogDescription>
+                        Upload bureau guidelines to dynamically extract Checklist Items and generate a reusable template.
+                    </DialogDescription>
+                </DialogHeader>
                 <form action={handleUpload}>
-                    <DialogHeader>
-                        <DialogTitle>Generate AI Template</DialogTitle>
-                        <DialogDescription>
-                            Upload bureau guidelines to dynamically extract Checklist Items and generate a reusable template.
-                        </DialogDescription>
-                    </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label htmlFor="title">Template Name</Label>

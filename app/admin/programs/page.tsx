@@ -100,7 +100,7 @@ export default async function AdminProgramsPage() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-3">
-                                                <h3 className="font-black text-xl italic tracking-tight text-slate-900 group-hover:text-red-600 transition-colorsLeading-tight">{template.title}</h3>
+                                                <h3 className="font-black text-xl italic tracking-tight text-slate-900 group-hover:text-red-600 transition-colors leading-tight">{template.title}</h3>
                                                 {template.isCustom && <Badge variant="outline" className="border-emerald-200 text-[10px] font-black tracking-widest text-emerald-600 uppercase bg-emerald-50">AI Generated</Badge>}
                                                 {!template.isCustom && <Badge variant="outline" className="border-slate-200 text-[10px] font-black tracking-widest text-slate-400 uppercase bg-slate-50">System Template</Badge>}
                                             </div>
