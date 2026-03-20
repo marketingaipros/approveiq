@@ -182,9 +182,17 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
 
             if (profileError) throw profileError
         }
-    } catch (error) {
-        console.error("Onboarding Error:", error)
-        return { error: "Failed to complete onboarding. Please try again." }
+    } catch (error: any) {
+        if (error.message?.includes('NEXT_REDIRECT')) {
+            throw error
+        }
+        console.error("DEBUG: Onboarding Error Detailed:", {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+        })
+        return { error: `Onboarding failed: ${error.message || 'Unknown server error'}. Please contact support.` }
     }
 
     revalidatePath('/', 'layout')
