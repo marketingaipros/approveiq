@@ -2,16 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/supabase'
 
-function getEnvVar(key: string): string {
-    if (typeof process !== 'undefined' && process.env[key]) {
-        return process.env[key] as string;
-    }
-    // Fallback for Cloudflare Worker bindings if not mapped to process.env
-    if (typeof globalThis !== 'undefined' && (globalThis as any).env && (globalThis as any).env[key]) {
-        return (globalThis as any).env[key] as string;
-    }
-    return '';
-}
+import { getEnvVar } from '@/lib/utils/env'
 
 export async function createClient() {
     const cookieStore = await cookies()
