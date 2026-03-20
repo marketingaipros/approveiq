@@ -7,5 +7,6 @@ assets = { directory = ".open-next/assets", binding = "ASSETS" }
 [vars]
 NEXT_PUBLIC_SUPABASE_URL = "https://ltpmqqcpmvjrgqfaifnv.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0cG1xcWNwbXZqcmdxZmFpZm52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNjQ5NTEsImV4cCI6MjA4NTg0MDk1MX0.p8yLyZI6rYanNfTSgixw3IguZPPaNjT4Y9EypwivbYs"
+NEXT_DISABLE_ESLINT = "1"
 # SUPABASE_SERVICE_ROLE_KEY must be added as a secret:
 # npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
