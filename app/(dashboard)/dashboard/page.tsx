@@ -117,6 +117,26 @@ export default async function Dashboard() {
     const activeBureausCount = bureauStatuses.filter(b => b.status === 'Active').length
     const activeUsers = 1;
 
+    // 3. Setup Assistant (Concierge) Logic
+    const hasFullName = !!(profile as any)?.full_name
+    const hasTaxId = !!(org as any)?.data_cache?.ein
+    const experianApp = (bureauApps as any[])?.find(a => a.bureau_name.toLowerCase() === 'experian')
+    const isExperianPending = experianApp?.status === 'pending' || (experianApp && !experianApp.completed_at && experianApp.status !== 'active')
+    
+    let assistantMessage = "👋 Hi! I'm your onboarding assistant. I recommend starting with Experian—it's the fastest way to get your first data line reported."
+    let assistantAction = null
+
+    if (!hasFullName || !hasTaxId) {
+        assistantMessage = "Welcome! First, let's complete your business profile so we can pre-fill your applications."
+        assistantAction = "/onboarding/profile"
+    } else if (!bureauApps || bureauApps.length === 0) {
+        assistantMessage = "You're ready! I recommend starting with Experian—it's the standard for new furnishers. Start here."
+        assistantAction = "/experian-onboarding"
+    } else if (isExperianPending) {
+        assistantMessage = "Experian is reviewing your docs! This usually takes 3-5 days. Want to get ahead and start Equifax?"
+        assistantAction = "/equifax-onboarding"
+    }
+
     return (
         <div className="relative min-h-[calc(100vh-100px)]">
             <div className="flex items-center mb-4">
@@ -269,7 +289,11 @@ export default async function Dashboard() {
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-2xl max-w-[280px] relative transition-all hover:scale-[1.02]">
                         <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200 dark:border-zinc-800 rotate-45" />
                         <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
-                            &nbsp;👋 Hi! I'm your onboarding assistant. I recommend starting with <Link href="/experian-onboarding" className="text-blue-600 font-bold hover:underline">Experian</Link>—it's the fastest way to get your first data line reported.
+                            &nbsp;{assistantMessage} {assistantAction && (
+                                <Link href={assistantAction} className="text-blue-600 font-bold hover:underline">
+                                    {assistantAction === "/onboarding/profile" ? "Complete Profile" : "Start Here"}
+                                </Link>
+                            )}
                         </p>
                     </div>
                     <div className="bg-red-600 p-3 rounded-full shadow-lg shadow-red-900/30 text-white cursor-pointer hover:bg-red-700 transition-colors">
