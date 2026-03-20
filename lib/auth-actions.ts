@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 
-export async function login(formData: FormData) {
+export async function login(prevState: any, formData: FormData) {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
@@ -16,7 +16,7 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        return { error: error.message }
     }
 
     revalidatePath('/', 'layout')
@@ -30,21 +30,59 @@ export async function logout() {
     return redirect('/login')
 }
 
-export async function signup(formData: FormData) {
+export async function signup(prevState: any, formData: FormData) {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    const fullName = formData.get('fullName') as string
+    const companyName = formData.get('companyName') as string
+    const ein = formData.get('ein') as string
 
-    const { data: { user }, error } = await supabase.auth.signUp({
+    const { data: { user }, error: authError } = await supabase.auth.signUp({
         email,
         password,
     })
 
-    if (error) return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    if (authError) return { error: authError.message }
 
-    // Redirect to onboarding after successful signup
-    return redirect('/onboarding/profile')
+    if (user) {
+        try {
+            const supabaseAdmin = createAdminClient() as any
+
+            // 1. Create the Organization
+            const { data: org, error: orgError } = await supabaseAdmin
+                .from('organizations')
+                .insert({
+                    name: companyName,
+                    data_cache: { ein: ein },
+                    subscription_tier: 'starter',
+                    subscription_status: 'active'
+                })
+                .select()
+                .maybeSingle()
+
+            if (orgError) throw orgError
+
+            if (org) {
+                // 2. Create the Profile
+                const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+                    id: user.id,
+                    org_id: org.id,
+                    full_name: fullName,
+                    role: 'Owner',
+                    is_system_admin: false
+                })
+
+                if (profileError) throw profileError
+            }
+        } catch (error) {
+            console.error("Onboarding Error:", error)
+        }
+    }
+
+    revalidatePath('/', 'layout')
+    return redirect('/dashboard')
 }
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
