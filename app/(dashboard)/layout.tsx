@@ -35,6 +35,11 @@ export default async function DashboardLayout({
     // If super admin, force enterprise to unlock all features for testing
     const tier = isSuperAdmin ? 'enterprise' : ((org as any)?.subscription_tier || 'starter')
 
+    const hasFullName = !!(profile as any)?.full_name
+    const hasCompanyName = !!(org as any)?.name
+    const hasEin = !!(org as any)?.data_cache?.ein
+    const isProfileComplete = hasFullName && hasCompanyName && hasEin
+
     const { data: bureauApps } = await supabase
         .from('bureau_applications')
         .select('bureau_name, status')
@@ -47,7 +52,7 @@ export default async function DashboardLayout({
 
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-            <Sidebar tier={tier} isAdmin={isSuperAdmin} bureauStatuses={bureauStatusMap} />
+            <Sidebar tier={tier} isAdmin={isSuperAdmin} bureauStatuses={bureauStatusMap} isProfileComplete={isProfileComplete} />
             <div className="flex flex-col">
                 <HeaderWrapper userId={session?.user?.id} />
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">

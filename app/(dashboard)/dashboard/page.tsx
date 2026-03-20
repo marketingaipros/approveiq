@@ -10,7 +10,11 @@ import {
     Clock,
     Circle,
     Sparkles,
-    MessageCircle
+    MessageCircle,
+    ChevronRight,
+    Briefcase,
+    FileCheck,
+    Lock
 } from "lucide-react"
 
 import {
@@ -32,7 +36,7 @@ export default async function Dashboard() {
     const { data: { session } } = await supabase.auth.getSession()
     const { data: profile } = await (supabase as any)
         .from('profiles')
-        .select('org_id')
+        .select('org_id, full_name')
         .eq('id', session?.user?.id || '')
         .maybeSingle()
 
@@ -41,7 +45,7 @@ export default async function Dashboard() {
     // Use maybeSingle to avoid error if null
     let { data: org } = await (supabase as any)
         .from('organizations')
-        .select('id, name, bureau_readiness_score')
+        .select('id, name, bureau_readiness_score, data_cache')
         .eq('id', profile?.org_id || '')
         .maybeSingle()
 
@@ -49,24 +53,18 @@ export default async function Dashboard() {
     if (isSuperAdmin && !org) {
         const { data: masterOrg } = await (supabase as any)
             .from('organizations')
-            .select('id, name, bureau_readiness_score')
+            .select('id, name, bureau_readiness_score, data_cache')
             .eq('id', '00000000-0000-0000-0000-000000000000')
             .maybeSingle()
-        org = masterOrg
+        if (masterOrg) org = masterOrg
     }
 
     const orgId = org?.id
 
     // 2. Fetch Metrics (Parallel)
-    // Fetch Membership Applications Status
     const bureauAppsQuery = supabase
         .from('bureau_applications')
         .select('*')
-        .eq('org_id', orgId || '')
-
-    const programsQuery = supabase
-        .from('bureau_programs')
-        .select('*', { count: 'exact' })
         .eq('org_id', orgId || '')
 
     const pendingItemsQuery = supabase
@@ -83,14 +81,28 @@ export default async function Dashboard() {
 
     const [
         { data: bureauApps },
-        { count: totalPrograms },
         { count: pendingItemsCount },
         { count: pendingProgramsCount }
-    ] = await Promise.all([bureauAppsQuery, programsQuery, pendingItemsQuery, pendingProgramsQuery])
+    ] = await Promise.all([bureauAppsQuery, pendingItemsQuery, pendingProgramsQuery])
 
     const pendingReviews = (pendingItemsCount || 0) + (pendingProgramsCount || 0)
 
-    // Bureau Status Mapping
+    // Logics for Assistant & Launchpad
+    const hasFullName = !!(profile as any)?.full_name
+    const hasCompanyName = !!(org as any)?.name
+    const hasEin = !!(org as any)?.data_cache?.ein
+    const isProfileComplete = hasFullName && hasCompanyName && hasEin
+
+    const experianApp = (bureauApps as any[])?.find(a => a.bureau_name.toLowerCase() === 'experian')
+    const hasApps = bureauApps && (bureauApps as any[]).length > 0
+    const isExperianApproved = experianApp?.status === 'active' || experianApp?.status === 'Approved'
+    
+    // Step Determination for Launchpad
+    let currentStep = 1;
+    if (isProfileComplete) currentStep = 2;
+    if (hasApps) currentStep = 3;
+
+    // Bureau Status Mapping (for Readiness Component)
     const bureaus = [
         { name: 'Experian', path: '/experian-onboarding' },
         { name: 'Equifax', path: '/equifax-onboarding' },
@@ -103,7 +115,7 @@ export default async function Dashboard() {
         let status = 'Not Started'
         let variant: "outline" | "secondary" | "default" | "destructive" = "outline"
         
-        if (app?.status === 'active' || app?.completed_at) {
+        if (app?.status === 'active' || app?.status === 'Approved' || app?.completed_at) {
             status = 'Active'
             variant = 'default' 
         } else if (app) {
@@ -115,196 +127,269 @@ export default async function Dashboard() {
     })
 
     const activeBureausCount = bureauStatuses.filter(b => b.status === 'Active').length
-    const activeUsers = 1;
-
-    // 3. Setup Assistant (Concierge) Logic
-    const hasFullName = !!(profile as any)?.full_name
-    const hasCompanyName = !!(org as any)?.name
-    const hasEin = !!(org as any)?.data_cache?.ein
-    const isProfileComplete = hasFullName && hasCompanyName && hasEin
-
-    const experianApp = (bureauApps as any[])?.find(a => a.bureau_name.toLowerCase() === 'experian')
-    const hasApps = bureauApps && bureauApps.length > 0
-    const isExperianApproved = experianApp?.status === 'active' || experianApp?.status === 'Approved'
     
-    let assistantMessage = "👋 Hi! I'm your onboarding assistant."
-    let assistantAction = null
+    // Assistant Content logic
+    let assistantMessage = "Welcome! Let’s complete your profile to get started."
+    let assistantActionLink = "/onboarding/profile"
+    let assistantActionText = "Complete Profile"
 
-    if (!isProfileComplete) {
-        assistantMessage = "Welcome! Let’s complete your profile to get started."
-        assistantAction = "/onboarding/profile"
-    } else if (!hasApps) {
+    if (isProfileComplete && !hasApps) {
         assistantMessage = "You’re ready! I suggest starting with Experian first."
-        assistantAction = "/experian-onboarding"
-    } else if (experianApp && !isExperianApproved) {
+        assistantActionLink = "/experian-onboarding"
+        assistantActionText = "Start Experian"
+    } else if (hasApps && !isExperianApproved) {
         assistantMessage = "Experian is currently reviewing your file. You can track progress here or start Equifax in the meantime."
-        assistantAction = "/equifax-onboarding"
+        assistantActionLink = "/equifax-onboarding"
+        assistantActionText = "Check Equifax"
+    } else if (isExperianApproved) {
+        assistantMessage = "Experian is Approved! Let's get Equifax started to build your bureau presence."
+        assistantActionLink = "/equifax-onboarding"
+        assistantActionText = "Next Steps"
     }
 
+    const readinessScore = org?.bureau_readiness_score || 0;
+    const circumference = 2 * Math.PI * 80;
+    const strokeDashoffset = circumference - (readinessScore / 100) * circumference;
+
     return (
-        <div className="relative min-h-[calc(100vh-100px)]">
-            <div className="flex items-center mb-4">
-                <h1 className="text-lg font-semibold md:text-2xl">Command Center</h1>
+        <div className="relative min-h-screen">
+            {/* Command Header */}
+            <div className="flex flex-col gap-1 mb-8">
+                <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Command Center</h1>
+                <p className="text-muted-foreground text-sm flex items-center gap-1.5 font-medium">
+                    <Briefcase className="h-4 w-4" />
+                    {(org as any)?.name || 'Fintech Organization'} &bull; Managed by {(profile as any)?.full_name || 'Owner'}
+                </p>
             </div>
 
-            {/* Welcome Card / Status Banner */}
-            {activeBureausCount === 0 ? (
-                <Card className="border-none bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Sparkles className="h-32 w-32" />
-                    </div>
-                    <CardHeader className="pb-4 relative z-10">
-                        <CardTitle className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                            Ready to start furnishing?
-                        </CardTitle>
-                        <CardDescription className="text-blue-100 text-base md:text-lg max-w-2xl leading-relaxed mt-2">
-                            To begin reporting data, you must first complete a Membership Application for your chosen credit bureau.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-8 relative z-10">
-                        <Button className="bg-white text-blue-700 hover:bg-blue-50 font-bold px-8 h-12 rounded-xl transition-all shadow-lg active:scale-95 border-none" asChild>
-                            <Link href="/experian-onboarding">
-                                Begin Experian Application <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : pendingReviews && pendingReviews > 0 ? (
-                <Card className="border-l-4 border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
-                            <Users className="h-5 w-5" />
-                            AI Review in Progress
-                        </CardTitle>
-                        <CardDescription>
-                            {pendingReviews} action{pendingReviews > 1 ? 's' : ''} currently awaiting review.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex gap-4">
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href="/programs">View Programs</Link>
-                            </Button>
+            {/* Launchpad: Horizontal Onboarding Tracker */}
+            <Card className="mb-0 border-none bg-zinc-50 dark:bg-zinc-900 shadow-sm overflow-hidden mb-8">
+                <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row items-center justify-between">
+                        <div className={`flex-1 flex items-center justify-center p-6 gap-4 border-b md:border-b-0 md:border-r transition-all ${currentStep === 1 ? 'bg-white dark:bg-zinc-800 shadow-[inset_0_2px_0_0_#0066FF] z-10' : 'opacity-40'}`}>
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>1</div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold">Business Profile</span>
+                                <span className="text-xs text-muted-foreground">Company & EIN Setup</span>
+                            </div>
+                            {currentStep > 1 && <CheckCircle2 className="h-5 w-5 text-emerald-500 ml-auto" />}
                         </div>
-                    </CardContent>
-                </Card>
-            ) : (
-                <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                            <Activity className="h-5 w-5" />
-                            System Active
-                        </CardTitle>
-                        <CardDescription>No pending reviews. Ready for new submissions.</CardDescription>
-                    </CardHeader>
-                </Card>
-            )}
+                        <div className={`flex-1 flex items-center justify-center p-6 gap-4 border-b md:border-b-0 md:border-r transition-all ${currentStep === 2 ? 'bg-white dark:bg-zinc-800 shadow-[inset_0_2px_0_0_#0066FF] z-10' : 'opacity-40'}`}>
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>2</div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold">Experian Setup</span>
+                                <span className="text-xs text-muted-foreground">Primary Application</span>
+                            </div>
+                            {currentStep > 2 && <CheckCircle2 className="h-5 w-5 text-emerald-500 ml-auto" />}
+                        </div>
+                        <div className={`flex-1 flex items-center justify-center p-6 gap-4 transition-all ${currentStep === 3 ? 'bg-white dark:bg-zinc-800 shadow-[inset_0_2px_0_0_#0066FF] z-10' : 'opacity-40'}`}>
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>3</div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold">Review & Expansion</span>
+                                <span className="text-xs text-muted-foreground">Verify & Scale Bureaus</span>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4 mt-8">
-                <Card className="flex flex-col col-span-1 md:col-span-2 lg:col-span-1">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                            Bureaus
-                        </CardTitle>
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                         <CardTitle className="text-xl font-bold mb-4">Membership Status</CardTitle>
-                         <div className="space-y-4">
-                            {bureauStatuses.map((b) => (
-                                <div key={b.name} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-1.5 rounded-full ${
-                                            b.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 
-                                            b.status === 'Pending' ? 'bg-yellow-100 text-yellow-600' : 
-                                            'bg-zinc-100 text-zinc-400'
-                                        }`}>
-                                            {b.status === 'Active' ? <CheckCircle2 className="h-3.5 w-3.5" /> : 
-                                             b.status === 'Pending' ? <Clock className="h-3.5 w-3.5" /> : 
-                                             <Circle className="h-3.5 w-3.5" />}
-                                        </div>
-                                        <span className="text-sm font-medium">{b.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant={b.variant === 'default' ? 'default' : b.variant} className={
-                                            b.status === 'Active' ? 'bg-emerald-500 hover:bg-emerald-600 border-none px-2 py-0.5' : 
-                                            b.status === 'Pending' ? 'bg-yellow-500 hover:bg-yellow-600 border-none text-white px-2 py-0.5' : 
-                                            'px-2 py-0.5'
-                                        }>
-                                            {b.status}
-                                        </Badge>
-                                        {b.status === 'Not Started' && (
-                                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" asChild>
-                                                <Link href={b.path}>Start</Link>
-                                            </Button>
-                                        )}
-                                    </div>
+            <div className="grid gap-8 lg:grid-cols-3">
+                {/* Membership List (The Engine) */}
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="border-zinc-200 shadow-xl dark:border-zinc-800 overflow-hidden">
+                        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b dark:border-zinc-800 p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xl font-bold">Membership Applications</CardTitle>
+                                    <CardDescription>Track status for all major credit reporting bureaus.</CardDescription>
                                 </div>
-                            ))}
-                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                            Pending Actions
-                        </CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{pendingReviews || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Awaiting AI or Admin Attention
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Engine Readiness</CardTitle>
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{org?.bureau_readiness_score || 0}%</div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full mt-3 overflow-hidden">
-                            <div 
-                                className="bg-blue-600 h-full transition-all duration-1000" 
-                                style={{ width: `${org?.bureau_readiness_score || 0}%` }} 
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Account Access</CardTitle>
-                        <Activity className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{activeUsers}</div>
-                        <p className="text-xs text-muted-foreground mt-1 text-emerald-600 font-medium">
-                            Status: Secure / Owner
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+                                <Activity className="h-6 w-6 text-blue-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                {bureauStatuses.map((b) => (
+                                    <div key={b.name} className="p-6 flex items-center justify-between group hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-2.5 rounded-xl ${
+                                                b.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 
+                                                b.status === 'Pending' ? 'bg-blue-50 text-blue-600' : 
+                                                'bg-zinc-100 text-zinc-400'
+                                            }`}>
+                                                {b.status === 'Active' ? <FileCheck className="h-5 w-5" /> : 
+                                                 b.status === 'Pending' ? <Clock className="h-5 w-5" /> : 
+                                                 <Circle className="h-5 w-5" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-lg">{b.name} Reporting</p>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Standard Commercial Application</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-right hidden sm:block">
+                                                <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p>
+                                                <Badge variant={b.variant} className={
+                                                    b.status === 'Active' ? 'bg-emerald-500 hover:bg-emerald-600 border-none px-3 py-1 font-bold' : 
+                                                    b.status === 'Pending' ? 'bg-blue-600 hover:bg-blue-700 border-none text-white px-3 py-1 font-bold' : 
+                                                    'px-3 py-1 font-bold border-zinc-300 text-zinc-500'
+                                                }>
+                                                    {b.status}
+                                                </Badge>
+                                            </div>
+                                            {b.status === 'Not Started' ? (
+                                                <Button className="rounded-xl h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-blue-900/20 font-bold" asChild>
+                                                    <Link href={b.path}>Start Now</Link>
+                                                </Button>
+                                            ) : (
+                                                <Button variant="outline" size="icon" className="rounded-xl h-11 w-11 hover:text-blue-600 hover:border-blue-600" asChild>
+                                                    <Link href={b.path}><ChevronRight className="h-5 w-5" /></Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {/* Setup Assistant (Concierge) */}
-            <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-10 duration-700">
-                <div className="flex flex-col items-end gap-3">
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-2xl max-w-[280px] relative transition-all hover:scale-[1.02]">
-                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200 dark:border-zinc-800 rotate-45" />
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
-                            &nbsp;{assistantMessage} {assistantAction && (
-                                <Link href={assistantAction} className="text-blue-600 font-bold hover:underline">
-                                    {assistantAction === "/onboarding/profile" ? "Complete Profile" : "Start Here"}
-                                </Link>
-                            )}
-                        </p>
-                    </div>
-                    <div className="bg-red-600 p-3 rounded-full shadow-lg shadow-red-900/30 text-white cursor-pointer hover:bg-red-700 transition-colors">
-                        <MessageCircle className="h-6 w-6" />
-                    </div>
+                    {/* Pending Items */}
+                    {pendingReviews > 0 && (
+                        <Card className="border-l-4 border-l-orange-500 shadow-lg animate-in fade-in slide-in-from-left-4 duration-500">
+                             <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
+                                    <Sparkles className="h-5 w-5 text-orange-500" />
+                                    Review Requirements ({pendingReviews})
+                                </CardTitle>
+                             </CardHeader>
+                             <CardContent className="flex items-center justify-between pb-6">
+                                <p className="text-sm text-muted-foreground">Items are locked for review. Please check all programs to see detailed feedback.</p>
+                                <Button variant="secondary" className="font-bold" asChild>
+                                    <Link href="/programs">View All</Link>
+                                </Button>
+                             </CardContent>
+                        </Card>
+                    )}
+                </div>
+
+                {/* Bureau Readiness Gauge Side */}
+                <div className="space-y-6">
+                    <Card className="border-zinc-200 shadow-xl dark:border-zinc-800 text-center overflow-hidden">
+                        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b dark:border-zinc-800">
+                            <CardTitle className="text-lg">Aggregate Readiness</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-10 flex flex-col items-center">
+                            <div className="relative h-48 w-48 mb-6">
+                                {/* BACKGROUND CIRCLE */}
+                                <svg className="transform -rotate-90 w-full h-full">
+                                    <circle
+                                        cx="96"
+                                        cy="96"
+                                        r="80"
+                                        stroke="currentColor"
+                                        strokeWidth="12"
+                                        fill="transparent"
+                                        className="text-zinc-100 dark:text-zinc-800"
+                                    />
+                                    <circle
+                                        cx="96"
+                                        cy="96"
+                                        r="80"
+                                        stroke="#0066FF"
+                                        strokeWidth="12"
+                                        fill="transparent"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={strokeDashoffset}
+                                        strokeLinecap="round"
+                                        className="transition-all duration-1000 ease-out"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-5xl font-black text-zinc-900 dark:text-zinc-50">{readinessScore}%</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Score</span>
+                                </div>
+                            </div>
+                            <div className="space-y-4 w-full">
+                                <div className="flex justify-between items-center text-sm font-medium">
+                                    <span className="text-muted-foreground">Compliance Goal</span>
+                                    <span className="text-zinc-900 dark:text-zinc-50 font-bold">95%</span>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                                     <div 
+                                        className="bg-zinc-400 h-full transition-all duration-1000" 
+                                        style={{ width: '95%' }} 
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-left leading-relaxed">
+                                    Your readiness score is a weighted average of your data health and bureau compliance standing.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-zinc-200 shadow-xl dark:border-zinc-800 overflow-hidden">
+                        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b dark:border-zinc-800">
+                            <CardTitle className="text-lg">Authorized Users</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                    {((profile as any)?.full_name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p className="font-bold">{(profile as any)?.full_name || 'Authorized Member'}</p>
+                                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-bold uppercase tracking-wider">Owner</Badge>
+                                </div>
+                                <div className="ml-auto flex items-center gap-1.5 text-emerald-500">
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-xs font-bold">Online</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
+
+            {/* Setup Assistant (Concierge) - GLASSMORPHISM STYLE */}
+            <div className="fixed bottom-8 right-8 z-[100] group animate-in slide-in-from-bottom-12 duration-1000">
+                <div className="flex flex-col items-end gap-5">
+                    <div className="mb-2 transition-all group-hover:-translate-y-2 pointer-events-auto">
+                        <div className="relative bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-white/10 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] dark:shadow-black/50 max-w-[320px] ring-1 ring-black/5 dark:ring-white/10">
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+                                    <Sparkles className="h-4 w-4" />
+                                </div>
+                                <span className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-500 mt-1">Concierge Assistant</span>
+                            </div>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-relaxed mb-5">
+                                {assistantMessage}
+                            </p>
+                            {assistantActionLink && (
+                                <Button className="w-full rounded-2xl h-12 bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-950 font-black tracking-tight hover:scale-[1.03] transition-transform active:scale-95" asChild>
+                                    <Link href={assistantActionLink}>
+                                        {assistantActionText}
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    {/* Bot Button */}
+                    <button className="bg-blue-600 dark:bg-blue-600 p-5 rounded-[2rem] shadow-[0_15px_30px_-5px_rgba(0,102,255,0.4)] text-white hover:bg-blue-700 hover:rotate-6 transition-all active:scale-90 ring-4 ring-blue-100 dark:ring-blue-900/30">
+                        <MessageCircle className="h-8 w-8 fill-current" />
+                    </button>
+                </div>
+            </div>
+
+            {/* CSS FOR GAUGE & ANIMATIONS */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes slideIn {
+                    from { transform: translateX(-10px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .concierge-bot {
+                    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+            `}} />
         </div>
     )
 }

@@ -27,14 +27,16 @@ import { Lock, Database } from "lucide-react"
 interface SidebarProps {
     tier?: string
     isAdmin?: boolean
+    isProfileComplete?: boolean
     bureauStatuses?: {
         experian: boolean
         equifax: boolean
     }
 }
 
-export function Sidebar({ tier = 'starter', isAdmin = false, bureauStatuses }: SidebarProps) {
-    const isLocked = !bureauStatuses?.experian || !bureauStatuses?.equifax
+export function Sidebar({ tier = 'starter', isAdmin = false, bureauStatuses, isProfileComplete = false }: SidebarProps) {
+    const isLockedByBureaus = !bureauStatuses?.experian || !bureauStatuses?.equifax
+    const isLockedByProfile = !isProfileComplete
 
     const NavLink = ({ href, icon: Icon, children, feature, locked, showLockIcon }: any) => {
         const entitled = feature ? isEntitled(tier, feature) : true
@@ -75,8 +77,8 @@ export function Sidebar({ tier = 'starter', isAdmin = false, bureauStatuses }: S
                         <div className="pt-4 pb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Applications</div>
                         <NavLink href="/experian-onboarding" icon={ShieldCheck}>Experian</NavLink>
                         <NavLink href="/equifax-onboarding" icon={ShieldCheck}>Equifax</NavLink>
-                        <NavLink href="/sbfe-onboarding" icon={isLocked ? Lock : ShieldCheck} locked={isLocked} showLockIcon={isLocked}>SBFE</NavLink>
-                        <NavLink href="/dnb-onboarding" icon={isLocked ? Lock : ShieldCheck} locked={isLocked} showLockIcon={isLocked}>D&amp;B</NavLink>
+                        <NavLink href="/sbfe-onboarding" icon={isLockedByProfile ? Lock : ShieldCheck} locked={isLockedByProfile} showLockIcon={isLockedByProfile}>SBFE</NavLink>
+                        <NavLink href="/dnb-onboarding" icon={isLockedByProfile ? Lock : ShieldCheck} locked={isLockedByProfile} showLockIcon={isLockedByProfile}>D&amp;B</NavLink>
 
                         {isAdmin && (
                             <>
