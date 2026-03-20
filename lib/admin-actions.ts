@@ -17,7 +17,7 @@ async function verifySystemAdmin() {
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
     const profile: any = profileData;
 
     if (!profile?.is_system_admin) {

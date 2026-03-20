@@ -60,7 +60,7 @@ export async function signup(formData: FormData) {
                     subscription_tier: 'starter',
                     subscription_status: 'active'
                 })
-                .select().single()
+                .select().maybeSingle()
 
             if (org && !orgError) {
                 // 3. Create the Profile using the user's actual Full Name

@@ -60,7 +60,7 @@ export async function getOrCreateDNBApplication() {
             .from('dnb_onboarding_applications')
             .insert({ org_id: org.id, status: 'draft' })
             .select()
-            .single()
+            .maybeSingle()
         if (appError) throw new Error("Failed to create D&B application: " + appError.message)
         app = newApp
 
@@ -74,7 +74,7 @@ export async function getOrCreateDNBApplication() {
         .from('dnb_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
     return {
         application: app,

@@ -63,7 +63,7 @@ export async function getOrCreateSBFEApplication() {
             .from('sbfe_onboarding_applications')
             .insert({ org_id: org.id, status: 'draft' })
             .select()
-            .single()
+            .maybeSingle()
 
         if (appError) throw new Error("Failed to create SBFE application: " + appError.message)
         app = newApp
@@ -79,7 +79,7 @@ export async function getOrCreateSBFEApplication() {
         .from('sbfe_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
     return {
         application: app,

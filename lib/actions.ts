@@ -37,7 +37,7 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
         .update(updateData)
         .eq('id', itemId)
         .select('program_id, title')
-        .single()
+        .maybeSingle()
 
     if (itemError || !itemData) {
         console.error("Failed to update item:", itemError)
@@ -85,7 +85,7 @@ export async function seedProgramRequirements(programId: string) {
         .from('bureau_programs')
         .select('id')
         .eq('id', programId)
-        .single()
+        .maybeSingle()
 
     const { data: existingItems } = await (supabase as any)
         .from('checklist_items')
@@ -166,7 +166,7 @@ export async function recalculateProgramProgress(programId: string) {
         .update({ progress_percent: progressPercent })
         .eq('id', programId)
         .select('org_id')
-        .single()
+        .maybeSingle()
 
     if (progError || !program) {
         console.error("Failed to update program progress:", progError)
@@ -254,7 +254,7 @@ export async function createProgramFromTemplate(templateId: string) {
         .from('profiles')
         .select('org_id')
         .eq('id', session?.user?.id || '')
-        .single()
+        .maybeSingle()
 
     if (!profile?.org_id) throw new Error("No organization context found for this user.")
     const orgId = profile.org_id
@@ -270,7 +270,7 @@ export async function createProgramFromTemplate(templateId: string) {
             progress_percent: 0
         })
         .select()
-        .single()
+        .maybeSingle()
 
     if (progError || !program) {
         console.error("Failed to create program:", progError)
@@ -427,7 +427,7 @@ export async function updateSharedData(key: string, value: string) {
     const supabase = await createClient()
 
     // Get current org
-    const { data: org } = await supabase.from('organizations').select('id, data_cache').limit(1).single()
+    const { data: org } = await supabase.from('organizations').select('id, data_cache').limit(1).maybeSingle()
     if (!org) return
 
     const newCache = { ...((org as any).data_cache as any), [key]: value }
@@ -489,7 +489,7 @@ export async function uploadBureauGuidelines(formData: FormData) {
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
     if (!profile?.is_system_admin) throw new Error("Unauthorized")
 
@@ -565,7 +565,7 @@ export async function generateTemplateFromGuidelines(formData: FormData) {
         .from('profiles')
         .select('is_system_admin')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
     if (!profile?.is_system_admin) throw new Error("Unauthorized")
 
@@ -588,7 +588,7 @@ export async function generateTemplateFromGuidelines(formData: FormData) {
             description: `Generated from ${file.name}`
         })
         .select()
-        .single()
+        .maybeSingle()
 
     if (templateError || !template) {
         console.error("Template Gen Error", templateError)

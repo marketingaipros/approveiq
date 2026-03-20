@@ -39,7 +39,7 @@ export async function createDynamicRequirement(req: Omit<DynamicRequirement, 'id
         .select('display_order')
         .order('display_order', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
     const maxOrder: any = maxOrderData;
         
     const nextOrder = maxOrder ? (maxOrder.display_order || 0) + 1 : 1;

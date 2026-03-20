@@ -18,7 +18,7 @@ export async function getPendingEquifaxApplications() {
     }
     
     // In a real app we'd also check if the user is a system admin:
-    // const { data: profile } = await supabase.from('profiles').select('is_system_admin').eq('id', user.id).single()
+    // const { data: profile } = await supabase.from('profiles').select('is_system_admin').eq('id', user.id).maybeSingle()
     // if (!profile?.is_system_admin) throw new Error("Unauthorized Admin Access")
 
     // Fetch applications and their joined data

@@ -15,7 +15,7 @@ export async function getMasterProfile() {
         .from('bureau_master_profiles')
         .select('*')
         .eq('org_id', profile.org_id)
-        .single()
+        .maybeSingle()
         
     return data
 }
@@ -124,7 +124,7 @@ export async function saveDynamicAnswer(requirementId: string, answerValue: stri
         .from('dynamic_requirements')
         .select('*')
         .eq('id', requirementId)
-        .single()
+        .maybeSingle()
     const req: any = reqData;
         
     if (req?.validation_rules) {

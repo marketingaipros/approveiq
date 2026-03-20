@@ -30,7 +30,7 @@ export async function getOrCreateEquifaxApplication() {
         .from('profiles')
         .select('org_id')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
     if (!profile?.org_id) throw new Error("No organization context found.")
 
@@ -47,7 +47,7 @@ export async function getOrCreateEquifaxApplication() {
             .from('equifax_onboarding_applications')
             .insert({ org_id: profile.org_id, status: 'draft' })
             .select()
-            .single()
+            .maybeSingle()
 
         if (appError) throw new Error("Failed to create application")
         app = newApp
@@ -65,7 +65,7 @@ export async function getOrCreateEquifaxApplication() {
         .from('equifax_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
     return { application: app, data: equifaxData || {} }
 }

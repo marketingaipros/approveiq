@@ -40,7 +40,7 @@ export async function getOrCreateExperianApplication() {
             .from('experian_onboarding_applications')
             .insert({ org_id: org.id, status: 'draft' })
             .select()
-            .single()
+            .maybeSingle()
 
         if (appError) throw new Error("Failed to create Experian application: " + appError.message)
         app = newApp
@@ -66,7 +66,7 @@ export async function getOrCreateExperianApplication() {
         .from('experian_onboarding_data')
         .select('*')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
     // Build profile shape — gracefully handle varying column names
     const profileData = {
@@ -176,7 +176,7 @@ export async function generateTemplateFromGuidelines(bureau: string, requirement
         .from('bureau_templates')
         .insert({ name: templateName, bureau: bureau.toLowerCase(), description: `Auto-generated from ${bureau} Knowledge Base` })
         .select()
-        .single()
+        .maybeSingle()
 
     if (tplError) throw new Error("Failed to create template: " + tplError.message)
 
