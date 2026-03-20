@@ -47,7 +47,7 @@ export async function signup(formData: FormData) {
     return redirect('/onboarding/profile')
 }
 
-export async function completeOnboarding(formData: FormData) {
+export async function completeOnboarding(prevState: any, formData: FormData) {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
 
@@ -90,10 +90,9 @@ export async function completeOnboarding(formData: FormData) {
         }
     } catch (error) {
         console.error("Onboarding Error:", error)
-        // In a real app, you might want to redirect back with an error
         return { error: "Failed to complete onboarding. Please try again." }
     }
 
     revalidatePath('/', 'layout')
-    return redirect('/dashboard')
+    redirect('/dashboard')
 }

@@ -1,17 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useActionState } from "react"
 import { completeOnboarding } from "@/lib/auth-actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ShieldCheck, UserPlus } from "lucide-react"
+import { UserPlus, Loader2 } from "lucide-react"
 
 export default function OnboardingProfilePage() {
     const [ein, setEin] = useState("")
-    const [error, setError] = useState<string | null>(null)
-    const [loading, setLoading] = useState(false)
+    const [state, formAction, isPending] = useActionState(completeOnboarding, null)
 
     const handleEinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, "")
@@ -22,15 +21,6 @@ export default function OnboardingProfilePage() {
         }
         
         setEin(value)
-    }
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        setLoading(true)
-        setError(null)
-        // Since it's a server action, we can use it in a form but here we might want more control
-        // However, the user asked for a form submit. 
-        // We'll let the standard form action handle it or do it manually.
-        // Let's do it manually to handle the state nicely.
     }
 
     return (
@@ -48,7 +38,7 @@ export default function OnboardingProfilePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form action={completeOnboarding} className="space-y-4">
+                    <form action={formAction} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="fullName" className="text-zinc-300">Full Name</Label>
                             <Input 
@@ -78,18 +68,31 @@ export default function OnboardingProfilePage() {
                                 onChange={handleEinChange}
                                 placeholder="00-0000000" 
                                 required 
+                                pattern="\d{2}-\d{7}"
+                                title="EIN must be in the format 00-0000000"
                                 className="bg-zinc-950 border-zinc-800 focus:ring-red-500 text-white" 
                             />
                         </div>
 
-                        {error && (
+                        {state?.error && (
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-500 text-xs font-medium">
-                                {error}
+                                {state.error}
                             </div>
                         )}
 
-                        <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold tracking-wide mt-4">
-                            Finish Setup & Enter Dashboard
+                        <Button 
+                            type="submit" 
+                            disabled={isPending}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold tracking-wide mt-4"
+                        >
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Setting up...
+                                </>
+                            ) : (
+                                "Finish Setup & Enter Dashboard"
+                            )}
                         </Button>
                     </form>
 
