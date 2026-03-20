@@ -27,21 +27,28 @@ import { Lock, Database } from "lucide-react"
 interface SidebarProps {
     tier?: string
     isAdmin?: boolean
+    bureauStatuses?: {
+        experian: boolean
+        equifax: boolean
+    }
 }
 
-export function Sidebar({ tier = 'starter', isAdmin = false }: SidebarProps) {
-    const NavLink = ({ href, icon: Icon, children, feature }: any) => {
+export function Sidebar({ tier = 'starter', isAdmin = false, bureauStatuses }: SidebarProps) {
+    const isLocked = !bureauStatuses?.experian || !bureauStatuses?.equifax
+
+    const NavLink = ({ href, icon: Icon, children, feature, locked, showLockIcon }: any) => {
         const entitled = feature ? isEntitled(tier, feature) : true
+        const actuallyLocked = locked || !entitled
 
         return (
             <Link
-                href={entitled ? href : "#"}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${entitled ? 'text-muted-foreground' : 'text-muted-foreground/50 cursor-not-allowed grayscale'
+                href={actuallyLocked ? "#" : href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${actuallyLocked ? 'text-muted-foreground/50 cursor-not-allowed grayscale' : 'text-muted-foreground'
                     }`}
             >
                 <Icon className="h-4 w-4" />
                 <span className="flex-1">{children}</span>
-                {!entitled && <Lock className="h-3 w-3" />}
+                {actuallyLocked && showLockIcon && <Lock className="h-3 w-3" />}
             </Link>
         )
     }
@@ -64,12 +71,12 @@ export function Sidebar({ tier = 'starter', isAdmin = false }: SidebarProps) {
                         <div className="pt-4 pb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">General</div>
                         <NavLink href="/dashboard" icon={Home}>Dashboard</NavLink>
                         <NavLink href="/programs" icon={ShoppingCart}>Credit Bureaus</NavLink>
-
+ 
                         <div className="pt-4 pb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Applications</div>
-                        <NavLink href="/equifax-onboarding" icon={ShieldCheck}>Equifax</NavLink>
                         <NavLink href="/experian-onboarding" icon={ShieldCheck}>Experian</NavLink>
-                        <NavLink href="/sbfe-onboarding" icon={ShieldCheck}>SBFE</NavLink>
-                        <NavLink href="/dnb-onboarding" icon={ShieldCheck}>D&amp;B</NavLink>
+                        <NavLink href="/equifax-onboarding" icon={ShieldCheck}>Equifax</NavLink>
+                        <NavLink href="/sbfe-onboarding" icon={isLocked ? Lock : ShieldCheck} locked={isLocked} showLockIcon={isLocked}>SBFE</NavLink>
+                        <NavLink href="/dnb-onboarding" icon={isLocked ? Lock : ShieldCheck} locked={isLocked} showLockIcon={isLocked}>D&amp;B</NavLink>
 
                         {isAdmin && (
                             <>

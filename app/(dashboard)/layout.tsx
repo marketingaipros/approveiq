@@ -35,9 +35,19 @@ export default async function DashboardLayout({
     // If super admin, force enterprise to unlock all features for testing
     const tier = isSuperAdmin ? 'enterprise' : ((org as any)?.subscription_tier || 'starter')
 
+    const { data: bureauApps } = await supabase
+        .from('bureau_applications')
+        .select('bureau_name, status')
+        .eq('org_id', (profile as any)?.org_id || '')
+
+    const bureauStatusMap = {
+        experian: (bureauApps as any[])?.find((a: any) => a.bureau_name.toLowerCase() === 'experian')?.status === 'active',
+        equifax: (bureauApps as any[])?.find((a: any) => a.bureau_name.toLowerCase() === 'equifax')?.status === 'active',
+    }
+
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-            <Sidebar tier={tier} isAdmin={isSuperAdmin} />
+            <Sidebar tier={tier} isAdmin={isSuperAdmin} bureauStatuses={bureauStatusMap} />
             <div className="flex flex-col">
                 <HeaderWrapper userId={session?.user?.id} />
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
