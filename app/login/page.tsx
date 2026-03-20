@@ -81,7 +81,7 @@ export default function LoginPage() {
                                 <div className="space-y-4 pt-2 border-t border-zinc-800 mt-6 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <div className="space-y-2">
                                         <Label htmlFor="fullName" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                                            Compliance Officer Name
+                                            Full Name
                                         </Label>
                                         <Input 
                                             id="fullName" 
