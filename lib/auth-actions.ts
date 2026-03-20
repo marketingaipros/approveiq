@@ -33,12 +33,8 @@ export async function logout() {
 export async function signup(formData: FormData) {
     const supabase = await createClient()
 
-    // 1. Capture REAL data from the new form fields
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const fullName = formData.get('fullName') as string
-    const companyName = formData.get('companyName') as string
-    const ein = formData.get('ein') as string
 
     const { data: { user }, error } = await supabase.auth.signUp({
         email,
@@ -47,35 +43,57 @@ export async function signup(formData: FormData) {
 
     if (error) return redirect(`/login?error=${encodeURIComponent(error.message)}`)
 
-    if (user) {
-        try {
-            const supabaseAdmin = createAdminClient() as any
+    // Redirect to onboarding after successful signup
+    return redirect('/onboarding/profile')
+}
 
-            // 2. Create the Organization using the user's actual Company Name and EIN
-            const { data: org, error: orgError } = await supabaseAdmin
-                .from('organizations')
-                .insert({
-                    name: companyName,
-                    data_cache: { ein: ein }, // This is the "Universal Data" for auto-population
-                    subscription_tier: 'starter',
-                    subscription_status: 'active'
-                })
-                .select().maybeSingle()
+export async function completeOnboarding(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
 
-            if (org && !orgError) {
-                // 3. Create the Profile using the user's actual Full Name
-                await supabaseAdmin.from('profiles').insert({
-                    id: user.id,
-                    org_id: org.id,
-                    full_name: fullName,
-                    role: 'Owner',
-                    is_system_admin: false
-                })
-            }
-        } catch (error) {
-            console.error("Onboarding Error:", error)
-        }
+    if (!session?.user) {
+        return redirect('/login')
     }
 
+    const fullName = formData.get('fullName') as string
+    const companyName = formData.get('companyName') as string
+    const ein = formData.get('ein') as string
+
+    try {
+        const supabaseAdmin = createAdminClient() as any
+
+        // 1. Create the Organization
+        const { data: org, error: orgError } = await supabaseAdmin
+            .from('organizations')
+            .insert({
+                name: companyName,
+                data_cache: { ein: ein },
+                subscription_tier: 'starter',
+                subscription_status: 'active'
+            })
+            .select()
+            .maybeSingle()
+
+        if (orgError) throw orgError
+
+        if (org) {
+            // 2. Create the Profile
+            const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+                id: session.user.id,
+                org_id: org.id,
+                full_name: fullName,
+                role: 'Owner',
+                is_system_admin: false
+            })
+
+            if (profileError) throw profileError
+        }
+    } catch (error) {
+        console.error("Onboarding Error:", error)
+        // In a real app, you might want to redirect back with an error
+        return { error: "Failed to complete onboarding. Please try again." }
+    }
+
+    revalidatePath('/', 'layout')
     return redirect('/dashboard')
 }
