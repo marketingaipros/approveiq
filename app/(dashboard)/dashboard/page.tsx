@@ -119,21 +119,25 @@ export default async function Dashboard() {
 
     // 3. Setup Assistant (Concierge) Logic
     const hasFullName = !!(profile as any)?.full_name
-    const hasTaxId = !!(org as any)?.data_cache?.ein
+    const hasCompanyName = !!(org as any)?.name
+    const hasEin = !!(org as any)?.data_cache?.ein
+    const isProfileComplete = hasFullName && hasCompanyName && hasEin
+
     const experianApp = (bureauApps as any[])?.find(a => a.bureau_name.toLowerCase() === 'experian')
-    const isExperianPending = experianApp?.status === 'pending' || (experianApp && !experianApp.completed_at && experianApp.status !== 'active')
+    const hasApps = bureauApps && bureauApps.length > 0
+    const isExperianApproved = experianApp?.status === 'active' || experianApp?.status === 'Approved'
     
-    let assistantMessage = "👋 Hi! I'm your onboarding assistant. I recommend starting with Experian—it's the fastest way to get your first data line reported."
+    let assistantMessage = "👋 Hi! I'm your onboarding assistant."
     let assistantAction = null
 
-    if (!hasFullName || !hasTaxId) {
-        assistantMessage = "Welcome! First, let's complete your business profile so we can pre-fill your applications."
+    if (!isProfileComplete) {
+        assistantMessage = "Welcome! Let’s complete your profile to get started."
         assistantAction = "/onboarding/profile"
-    } else if (!bureauApps || bureauApps.length === 0) {
-        assistantMessage = "You're ready! I recommend starting with Experian—it's the standard for new furnishers. Start here."
+    } else if (!hasApps) {
+        assistantMessage = "You’re ready! I suggest starting with Experian first."
         assistantAction = "/experian-onboarding"
-    } else if (isExperianPending) {
-        assistantMessage = "Experian is reviewing your docs! This usually takes 3-5 days. Want to get ahead and start Equifax?"
+    } else if (experianApp && !isExperianApproved) {
+        assistantMessage = "Experian is currently reviewing your file. You can track progress here or start Equifax in the meantime."
         assistantAction = "/equifax-onboarding"
     }
 
