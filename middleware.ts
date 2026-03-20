@@ -45,7 +45,11 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    await supabase.auth.getUser()
+    try {
+        await supabase.auth.getUser()
+    } catch {
+        // Ignore errors in middleware - actual page loads will handle auth failures
+    }
 
     return response
 }
