@@ -13,9 +13,16 @@ export async function updateSession(request: NextRequest) {
         },
     })
 
+    const supabaseUrl = getEnvVar('NEXT_PUBLIC_SUPABASE_URL')
+    const supabaseKey = getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+
+    if (!supabaseUrl || !supabaseKey) {
+        return response
+    }
+
     const supabase = createServerClient(
-        getEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
-        getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 getAll() {
