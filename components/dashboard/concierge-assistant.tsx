@@ -19,6 +19,8 @@ export function ConciergeAssistant({ message, actionLink, actionText }: Concierg
             <div className="fixed bottom-10 right-10 z-[500] animate-in fade-in zoom-in duration-500">
                 <button 
                     onClick={() => setIsOpen(true)}
+                    title="Open Assistant"
+                    aria-label="Open Assistant"
                     className="relative bg-[#0066FF] p-6 rounded-[2.2rem] shadow-[0_20px_40px_-10px_rgba(0,102,255,0.6)] text-white hover:bg-[#0052CC] hover:-rotate-6 transition-all active:scale-95 group/mainbtn"
                 >
                     <div className="absolute inset-0 rounded-[2.2rem] bg-[#0066FF] animate-ping opacity-20 pointer-events-none" />
@@ -40,6 +42,8 @@ export function ConciergeAssistant({ message, actionLink, actionText }: Concierg
                         {/* Minimize Button */}
                         <button 
                             onClick={() => setIsOpen(false)}
+                            title="Minimize Guidance"
+                            aria-label="Minimize Guidance"
                             className="absolute top-6 right-6 p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors bg-white/20 dark:bg-zinc-800/20 rounded-lg"
                         >
                             <Minus className="h-4 w-4" />
@@ -73,6 +77,8 @@ export function ConciergeAssistant({ message, actionLink, actionText }: Concierg
                 {/* The Pulse Button (Also toggles) */}
                 <button 
                     onClick={() => setIsOpen(false)}
+                    title="Close Assistant"
+                    aria-label="Close Assistant"
                     className="relative bg-[#0066FF] p-6 rounded-[2.2rem] shadow-[0_20px_40px_-10px_rgba(0,102,255,0.6)] text-white hover:bg-[#0052CC] hover:-rotate-6 transition-all active:scale-95 group/mainbtn"
                 >
                     <MessageCircle className="h-10 w-10 fill-current relative z-10" />

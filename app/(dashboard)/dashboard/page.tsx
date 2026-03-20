@@ -32,8 +32,27 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { ConciergeAssistant } from "@/components/dashboard/concierge-assistant"
+import { DashboardToasts } from "@/components/dashboard/dashboard-toasts"
+import { Suspense } from "react"
 
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
+    const params = await searchParams;
+    const success = params.success;
+    
+    const SUCCESS_HEADERS: Record<string, string> = {
+        experian: "Experian Submission Received!",
+        equifax: "Equifax Application Live!",
+        sbfe: "SBFE Data Synced!",
+        dnb: "Full Coverage Achieved! 🏆"
+    }
+
+    const SUCCESS_SUBTEXTS: Record<string, string> = {
+        experian: "Data successfully synced to our compliance bridge. View Equifax below.",
+        equifax: "You're halfway to the Big Three. Let's look at SBFE for small business depth.",
+        sbfe: "Small Business Financial Exchange is active. Final step: D&B (Dun & Bradstreet).",
+        dnb: "All major bureaus are pending. Let's set up your First Data Batch for reporting."
+    }
+
     const supabase = await createClient()
 
     // 1. Get Org Context via Profile
@@ -155,6 +174,28 @@ export default async function Dashboard() {
 
     return (
         <div className="relative min-h-screen bg-[#F8FAFC] dark:bg-[#09090B]">
+            <Suspense fallback={null}>
+                <DashboardToasts />
+            </Suspense>
+            
+            {/* Success Hero Overlay (Conditional) */}
+            {success && SUCCESS_HEADERS[success] && (
+                <div className="mb-8 p-6 bg-[#0066FF] rounded-[2rem] shadow-2xl shadow-blue-500/20 text-white flex flex-col md:flex-row items-center justify-between animate-in slide-in-from-top duration-700">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                            <Clock className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black italic">{SUCCESS_HEADERS[success]}</h3>
+                            <p className="text-blue-100 text-sm font-bold">{SUCCESS_SUBTEXTS[success]}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4 md:mt-0">
+                        <Badge className="bg-white/20 text-white border-none font-black text-[10px] uppercase px-3 py-1">Synced & Secured</Badge>
+                    </div>
+                </div>
+            )}
+
             {/* Header Content */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                 <div className="space-y-1">

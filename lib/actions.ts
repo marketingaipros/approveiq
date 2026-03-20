@@ -643,3 +643,48 @@ export async function generateTemplateFromGuidelines(formData: FormData) {
 
     revalidatePath('/admin/programs')
 }
+
+export async function updateOrganizationProfile(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) throw new Error("Unauthorized")
+
+    const { data: profile } = await (supabase as any)
+        .from('profiles')
+        .select('org_id')
+        .eq('id', session.user.id)
+        .maybeSingle()
+    
+    if (!profile?.org_id) throw new Error("No organization found")
+
+    const name = formData.get('name') as string
+    const website = formData.get('website') as string
+    const phone = formData.get('phone') as string
+    const address = formData.get('address') as string
+    const city = formData.get('city') as string
+    const stateAttr = formData.get('state') as string
+    const zip = formData.get('zip') as string
+
+    const { error } = await (supabase as any)
+        .from('organizations')
+        .update({
+            name,
+            company_name: name, // Sync both for safety
+            website,
+            phone,
+            address,
+            city,
+            state: stateAttr,
+            zip,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.org_id)
+
+    if (error) {
+        console.error("Failed to update organization:", error)
+        throw new Error("Failed to update organization profile")
+    }
+
+    revalidatePath('/', 'layout')
+    return { success: true }
+}

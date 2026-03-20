@@ -117,6 +117,16 @@ export async function submitExperianApplication(applicationId: string) {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error("Unauthorized")
 
+    // 1. Get the app to find org_id
+    const { data: app } = await (supabase as any)
+        .from('experian_onboarding_applications')
+        .select('org_id')
+        .eq('id', applicationId)
+        .maybeSingle()
+    
+    if (!app) throw new Error("Application not found")
+
+    // 2. Update the onboarding status
     const { error } = await (supabase as any)
         .from('experian_onboarding_applications')
         .update({ status: 'submitted' })
@@ -124,8 +134,19 @@ export async function submitExperianApplication(applicationId: string) {
 
     if (error) throw new Error("Failed to submit Experian application: " + error.message)
 
+    // 3. Sync to main bureau_applications table for Dashboard visibility
+    await (supabase as any)
+        .from('bureau_applications')
+        .upsert({
+            org_id: app.org_id,
+            bureau_name: 'Experian',
+            status: 'manual_review_required', // Shows as "Pending" in dashboard
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'org_id, bureau_name' })
+
     revalidatePath('/experian-onboarding')
     revalidatePath('/admin/experian')
+    revalidatePath('/dashboard')
     return { success: true }
 }
 

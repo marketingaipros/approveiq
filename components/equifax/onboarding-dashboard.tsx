@@ -13,6 +13,8 @@ import { Step2CompanyInfo } from "./wizard/step2-company-info"
 import { Step3BusinessModel } from "./wizard/step3-business-model"
 import { Step4Products } from "./wizard/step4-products"
 import { Step5Submit } from "./wizard/step5-submit"
+import { useRouter } from "next/navigation"
+import confetti from "canvas-confetti"
 
 interface Props {
     initialData: any
@@ -24,6 +26,23 @@ export function OnboardingDashboard({ initialData, applicationId, status }: Prop
     const [data, setData] = useState(initialData)
     const [currentStep, setCurrentStep] = useState(status === 'submitted' ? 5 : 1)
     const [isSaving, setIsSaving] = useState(false)
+    const router = useRouter()
+
+    const handleSubmitted = () => {
+        // Equifax Success Ceremony
+        confetti({
+            particleCount: 150,
+            spread: 75,
+            origin: { y: 0.6 },
+            colors: ['#EE1C25', '#FFFFFF', '#221F1F'] // Equifax Red, White, Gray
+        })
+
+        setCurrentStep(6)
+
+        setTimeout(() => {
+            router.push('/dashboard?success=equifax')
+        }, 3000)
+    }
 
     const saveToDb = useCallback(
         debounce(async (newData: any) => {
@@ -98,7 +117,7 @@ export function OnboardingDashboard({ initialData, applicationId, status }: Prop
                     <Step5Submit
                         data={data}
                         applicationId={applicationId}
-                        onSubmitted={() => setCurrentStep(6)}
+                        onSubmitted={handleSubmitted}
                     />
                 )}
                 {currentStep === 6 && (

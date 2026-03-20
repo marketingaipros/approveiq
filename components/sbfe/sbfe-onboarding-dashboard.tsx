@@ -12,6 +12,8 @@ import { ExperianStep2Profile } from "@/components/experian/wizard/step2-profile
 import { SBFEStep3Questionnaire } from "./wizard/step3-questionnaire"
 import { SBFEStep4DataMapping } from "./wizard/step4-data-mapping"
 import { ExperianStep5Signature } from "@/components/experian/wizard/step5-signature"
+import { useRouter } from "next/navigation"
+import confetti from "canvas-confetti"
 
 interface Props {
     initialData: any
@@ -25,6 +27,23 @@ export function SBFEOnboardingDashboard({ initialData, applicationId, status, or
     const [data, setData] = useState(initialData)
     const [currentStep, setCurrentStep] = useState(status === 'submitted' ? 6 : 1)
     const [isSaving, setIsSaving] = useState(false)
+    const router = useRouter()
+
+    const handleSubmitted = () => {
+        // SBFE Success Ceremony
+        confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#A78BFA', '#0066FF', '#FFFFFF'] // SBFE Violet, Blue, White
+        })
+
+        setCurrentStep(6)
+
+        setTimeout(() => {
+            router.push('/dashboard?success=sbfe')
+        }, 3000)
+    }
 
     const saveToDb = useCallback(
         debounce(async (newData: any) => {
@@ -84,7 +103,7 @@ export function SBFEOnboardingDashboard({ initialData, applicationId, status, or
                         profile={profile}
                         applicationId={applicationId}
                         onChange={handleChange}
-                        onSubmitted={() => setCurrentStep(6)}
+                        onSubmitted={handleSubmitted}
                         submitAction={submitSBFEApplication}
                         bureauLabel="SBFE"
                         requirementTag="LENDER_VERIFICATION · SBFE_GOVERNANCE"

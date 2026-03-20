@@ -12,6 +12,8 @@ import { ExperianStep2Profile } from "./wizard/step2-profile"
 import { ExperianStep3CompanyIdentity } from "./wizard/step3-company-identity"
 import { ExperianStep4Affiliated } from "./wizard/step4-affiliated"
 import { ExperianStep5Signature } from "./wizard/step5-signature"
+import confetti from "canvas-confetti"
+import { useRouter } from "next/navigation"
 
 interface Props {
     initialData: any
@@ -25,6 +27,25 @@ export function ExperianOnboardingDashboard({ initialData, applicationId, status
     const [data, setData] = useState(initialData)
     const [currentStep, setCurrentStep] = useState(status === 'submitted' ? 6 : 1)
     const [isSaving, setIsSaving] = useState(false)
+    const router = useRouter()
+
+    const handleSubmitted = () => {
+        // 1. Confetti celebration
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#0066FF', '#00E5FF', '#FFFFFF']
+        })
+
+        // 2. Set internal step to 6 (Submitted)
+        setCurrentStep(6)
+
+        // 3. Redirect after celebration
+        setTimeout(() => {
+            router.push('/dashboard?success=experian')
+        }, 3000)
+    }
 
     const saveToDb = useCallback(
         debounce(async (newData: any) => {
@@ -103,7 +124,7 @@ export function ExperianOnboardingDashboard({ initialData, applicationId, status
                         profile={profile}
                         applicationId={applicationId}
                         onChange={handleChange}
-                        onSubmitted={() => setCurrentStep(6)}
+                        onSubmitted={handleSubmitted}
                     />
                 )}
                 {currentStep === 6 && (

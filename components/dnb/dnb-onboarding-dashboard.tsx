@@ -13,6 +13,8 @@ import { DNBStep3Intent } from "./wizard/step3-intent"
 import { DNBStep4AReporting } from "./wizard/step4a-reporting"
 import { DNBStep4BBuilding } from "./wizard/step4b-building"
 import { ExperianStep5Signature } from "@/components/experian/wizard/step5-signature"
+import { useRouter } from "next/navigation"
+import confetti from "canvas-confetti"
 
 interface Props {
     initialData: any
@@ -26,6 +28,23 @@ export function DNBOnboardingDashboard({ initialData, applicationId, status, org
     const [data, setData] = useState(initialData)
     const [currentStep, setCurrentStep] = useState(status === "submitted" ? 6 : 1)
     const [isSaving, setIsSaving] = useState(false)
+    const router = useRouter()
+
+    const handleSubmitted = () => {
+        // D&B Success Ceremony
+        confetti({
+            particleCount: 150,
+            spread: 90,
+            origin: { y: 0.6 },
+            colors: ['#FF6600', '#FFFFFF', '#333333'] // DNB Orange, White, Dark Gray
+        })
+
+        setCurrentStep(6)
+
+        setTimeout(() => {
+            router.push('/dashboard?success=dnb')
+        }, 3000)
+    }
 
     const saveToDb = useCallback(
         debounce(async (newData: any) => {
@@ -106,7 +125,7 @@ export function DNBOnboardingDashboard({ initialData, applicationId, status, org
                         profile={profile}
                         applicationId={applicationId}
                         onChange={handleChange}
-                        onSubmitted={() => setCurrentStep(6)}
+                        onSubmitted={handleSubmitted}
                         submitAction={submitDNBApplication}
                         bureauLabel="D&B"
                         requirementTag="DNB_ELIGIBILITY · DNB_REPORTING · DNB_CREDIT_BUILDING"
