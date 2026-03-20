@@ -49,7 +49,7 @@ export default async function Dashboard() {
     // Use maybeSingle to avoid error if null
     let { data: org } = await (supabase as any)
         .from('organizations')
-        .select('id, name, bureau_readiness_score, data_cache')
+        .select('id, name, bureau_readiness_score, ein')
         .eq('id', profile?.org_id || '')
         .maybeSingle()
 
@@ -57,7 +57,7 @@ export default async function Dashboard() {
     if (isSuperAdmin && !org) {
         const { data: masterOrg } = await (supabase as any)
             .from('organizations')
-            .select('id, name, bureau_readiness_score, data_cache')
+            .select('id, name, bureau_readiness_score, ein')
             .eq('id', '00000000-0000-0000-0000-000000000000')
             .maybeSingle()
         if (masterOrg) org = masterOrg
@@ -94,7 +94,7 @@ export default async function Dashboard() {
     // Logics for Assistant & Launchpad
     const hasFullName = !!(profile as any)?.full_name
     const hasCompanyName = !!(org as any)?.name
-    const hasEin = !!(org as any)?.data_cache?.ein
+    const hasEin = !!(org as any)?.ein
     const isProfileComplete = hasFullName && hasCompanyName && hasEin
 
     const experianApp = (bureauApps as any[])?.find(a => a.bureau_name.toLowerCase() === 'experian')

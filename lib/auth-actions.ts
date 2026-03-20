@@ -55,7 +55,7 @@ export async function signup(prevState: any, formData: FormData) {
                 .from('organizations')
                 .insert({
                     name: companyName,
-                    data_cache: { ein: ein },
+                    ein: ein,
                     subscription_tier: 'starter',
                     subscription_status: 'active'
                 })
@@ -87,7 +87,7 @@ export async function signup(prevState: any, formData: FormData) {
                 .from('organizations')
                 .insert({
                     name: companyName,
-                    data_cache: { ein: ein },
+                    ein: ein,
                     subscription_tier: 'starter',
                     subscription_status: 'active'
                 })
@@ -147,7 +147,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
                 .from('organizations')
                 .insert({
                     name: companyName,
-                    data_cache: { ein: ein },
+                    ein: ein,
                     subscription_tier: 'starter',
                     subscription_status: 'active'
                 })
@@ -162,7 +162,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
                 .from('organizations')
                 .update({
                     name: companyName,
-                    data_cache: { ein: ein }
+                    ein: ein
                 })
                 .eq('id', orgId)
 

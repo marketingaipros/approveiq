@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 
     const { data: org } = await (supabase as any)
         .from('organizations')
-        .select('subscription_tier')
+        .select('subscription_tier, ein, name')
         .eq('id', (profile as any)?.org_id || '')
         .maybeSingle()
 
@@ -37,7 +37,7 @@ export default async function DashboardLayout({
 
     const hasFullName = !!(profile as any)?.full_name
     const hasCompanyName = !!(org as any)?.name
-    const hasEin = !!(org as any)?.data_cache?.ein
+    const hasEin = !!(org as any)?.ein
     const isProfileComplete = hasFullName && hasCompanyName && hasEin
 
     const { data: bureauApps } = await supabase
