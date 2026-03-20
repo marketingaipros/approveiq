@@ -63,13 +63,11 @@ export async function signup(prevState: any, formData: FormData) {
                 .maybeSingle()
 
             if (!orgError && org) {
-                await supabaseAdmin.from('profiles').insert({
-                    id: user.id,
+                await supabaseAdmin.from('profiles').update({
                     org_id: org.id,
                     full_name: fullName,
-                    role: 'Owner',
-                    is_system_admin: false
-                })
+                    role: 'Owner'
+                }).eq('id', user.id)
             }
         } catch (e) {
             console.error("Background onboarding failure:", e)
@@ -99,14 +97,12 @@ export async function signup(prevState: any, formData: FormData) {
             if (orgError) throw orgError
 
             if (org) {
-                // 2. Create the Profile
-                const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-                    id: user.id,
+                // 2. Update the Profile (inserted by trigger handle_new_user)
+                const { error: profileError } = await supabaseAdmin.from('profiles').update({
                     org_id: org.id,
                     full_name: fullName,
-                    role: 'Owner',
-                    is_system_admin: false
-                })
+                    role: 'Owner'
+                }).eq('id', user.id)
 
                 if (profileError) throw profileError
             }
@@ -136,29 +132,53 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     try {
         const supabaseAdmin = createAdminClient() as any
 
-        // 1. Create the Organization
-        const { data: org, error: orgError } = await supabaseAdmin
-            .from('organizations')
-            .insert({
-                name: companyName,
-                data_cache: { ein: ein },
-                subscription_tier: 'starter',
-                subscription_status: 'active'
-            })
-            .select()
+        // Check if user already has an org
+        const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('org_id')
+            .eq('id', session.user.id)
             .maybeSingle()
 
-        if (orgError) throw orgError
+        let orgId = (existingProfile as any)?.org_id
 
-        if (org) {
-            // 2. Create the Profile
-            const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-                id: session.user.id,
-                org_id: org.id,
-                full_name: fullName,
-                role: 'Owner',
-                is_system_admin: false
-            })
+        if (!orgId) {
+            // 1. Create the Organization if it doesn't exist
+            const { data: org, error: orgError } = await supabaseAdmin
+                .from('organizations')
+                .insert({
+                    name: companyName,
+                    data_cache: { ein: ein },
+                    subscription_tier: 'starter',
+                    subscription_status: 'active'
+                })
+                .select()
+                .maybeSingle()
+
+            if (orgError) throw orgError
+            orgId = org?.id
+        } else {
+            // 2. Update existing organization
+            const { error: orgUpdateError } = await supabaseAdmin
+                .from('organizations')
+                .update({
+                    name: companyName,
+                    data_cache: { ein: ein }
+                })
+                .eq('id', orgId)
+
+            if (orgUpdateError) throw orgUpdateError
+        }
+
+        if (orgId) {
+            // 3. Update the Profile (it always exists due to trigger)
+            const { error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .update({
+                    org_id: orgId,
+                    full_name: fullName,
+                    role: 'Owner'
+                })
+                .eq('id', session.user.id)
 
             if (profileError) throw profileError
         }
