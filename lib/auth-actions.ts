@@ -39,12 +39,46 @@ export async function signup(prevState: any, formData: FormData) {
     const companyName = formData.get('companyName') as string
     const ein = formData.get('ein') as string
 
-    const { data: { user }, error: authError } = await supabase.auth.signUp({
+    const { data: { user, session }, error: authError } = await supabase.auth.signUp({
         email,
         password,
     })
 
     if (authError) return { error: authError.message }
+
+    if (!session && user) {
+        // This usually means email confirmation is required.
+        // We'll still try to create their org/profile in the background using their ID
+        try {
+            const supabaseAdmin = createAdminClient() as any
+            const { data: org, error: orgError } = await supabaseAdmin
+                .from('organizations')
+                .insert({
+                    name: companyName,
+                    data_cache: { ein: ein },
+                    subscription_tier: 'starter',
+                    subscription_status: 'active'
+                })
+                .select()
+                .maybeSingle()
+
+            if (!orgError && org) {
+                await supabaseAdmin.from('profiles').insert({
+                    id: user.id,
+                    org_id: org.id,
+                    full_name: fullName,
+                    role: 'Owner',
+                    is_system_admin: false
+                })
+            }
+        } catch (e) {
+            console.error("Background onboarding failure:", e)
+        }
+
+        return { 
+            message: "Authentication successful. Please check your email to verify your account before logging in." 
+        }
+    }
 
     if (user) {
         try {
@@ -78,6 +112,8 @@ export async function signup(prevState: any, formData: FormData) {
             }
         } catch (error) {
             console.error("Onboarding Error:", error)
+            // Even if onboarding fails, they are signed up with Supabase. 
+            // We shouldn't return a fatal error if the auth part succeeded.
         }
     }
 

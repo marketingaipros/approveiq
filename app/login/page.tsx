@@ -122,9 +122,15 @@ export default function LoginPage() {
                             )}
                         </div>
 
-                        {state?.error && (
+                        {(state as any)?.message && (
+                            <div className="p-4 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-emerald-500 text-xs font-medium animate-in fade-in zoom-in duration-300">
+                                {(state as any).message}
+                            </div>
+                        )}
+
+                        {(state as any)?.error && (
                             <div className="p-4 bg-red-950/30 border border-red-500/20 rounded-lg text-red-500 text-xs font-medium animate-pulse">
-                                {state.error}
+                                {(state as any).error}
                             </div>
                         )}
 
